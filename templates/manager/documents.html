@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Documents - DevResolve AI{% endblock %}
+{% block body %}
+<div class="flex min-h-screen bg-gray-50">
+  {% set active = 'documents' %}
+  {% set pending_count = 0 %}
+  {% include "manager/_sidebar.html" %}
+
+  <main class="ml-64 flex-1 p-8">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-900">Project Documents</h1>
+      <p class="text-gray-500 text-sm mt-1">Uploaded documentation indexed for AI-powered ticket solutions</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr class="text-xs text-gray-500">
+              <th class="px-5 py-3 text-left font-semibold">Filename</th>
+              <th class="px-5 py-3 text-left font-semibold">Uploaded By</th>
+              <th class="px-5 py-3 text-left font-semibold">Chunks Indexed</th>
+              <th class="px-5 py-3 text-left font-semibold">Size</th>
+              <th class="px-5 py-3 text-left font-semibold">Date</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for doc in documents %}
+            <tr>
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-file-alt text-primary-400"></i>
+                  <span class="font-medium text-gray-900">{{doc.original_name}}</span>
+                </div>
+              </td>
+              <td class="px-5 py-4 text-gray-600">{{doc.uploader.name}}</td>
+              <td class="px-5 py-4">
+                <span class="px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                  {{doc.chunks_indexed}} chunks
+                </span>
+              </td>
+              <td class="px-5 py-4 text-gray-500">
+                {{(doc.file_size / 1024)|round(1)}} KB
+              </td>
+              <td class="px-5 py-4 text-gray-400 text-xs">
+                {{doc.created_at.strftime('%b %d, %Y') if doc.created_at else '—'}}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="py-12 text-center text-gray-400">
+              <i class="fas fa-upload text-4xl mb-3 text-gray-300"></i>
+              <p>No documents uploaded yet. Developers can upload docs from their dashboard.</p>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

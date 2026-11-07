@@ -1,0 +1,46 @@
+<!-- Manager Sidebar Partial -->
+<aside class="w-64 gradient-bg min-h-screen flex flex-col py-6 px-4 fixed top-0 left-0 z-30">
+  <div class="flex items-center gap-3 mb-8 px-2">
+    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+      <i class="fas fa-robot text-white text-xl"></i>
+    </div>
+    <div>
+      <div class="text-white font-bold">DevResolve AI</div>
+      <div class="text-white/50 text-xs">Manager Portal</div>
+    </div>
+  </div>
+
+  <!-- User info -->
+  <div class="bg-white/10 rounded-xl p-3 mb-6 flex items-center gap-3">
+    <div class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">
+      {{current_user.name[0].upper() if current_user else 'M'}}
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="text-white text-sm font-semibold truncate">{{current_user.name if current_user else 'Manager'}}</div>
+      <div class="text-white/50 text-xs truncate">{{current_user.email if current_user else ''}}</div>
+    </div>
+  </div>
+
+  <nav class="flex-1 space-y-1">
+    <a href="/manager/dashboard" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='dashboard' %}active{% endif %}">
+      <i class="fas fa-tachometer-alt w-5"></i>Dashboard
+    </a>
+    <a href="/manager/requests" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='requests' %}active{% endif %}">
+      <i class="fas fa-user-check w-5"></i>Access Requests
+      {% if pending_count %}<span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{pending_count}}</span>{% endif %}
+    </a>
+    <a href="/manager/tickets" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='tickets' %}active{% endif %}">
+      <i class="fas fa-ticket-alt w-5"></i>All Tickets
+    </a>
+    <a href="/manager/team" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='team' %}active{% endif %}">
+      <i class="fas fa-users w-5"></i>Dev Team
+    </a>
+    <a href="/manager/documents" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='documents' %}active{% endif %}">
+      <i class="fas fa-file-alt w-5"></i>Documents
+    </a>
+  </nav>
+
+  <a href="/auth/logout" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:text-white text-sm mt-auto">
+    <i class="fas fa-sign-out-alt w-5"></i>Logout
+  </a>
+</aside>

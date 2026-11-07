@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - DevResolve AI{% endblock %}
+{% block body %}
+<div class="flex min-h-screen bg-gray-50">
+  {% set active = 'dashboard' %}
+  {% include "developer/_sidebar.html" %}
+
+  <main class="ml-64 flex-1 p-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Welcome back, <span class="text-primary-600">{{developer.name.split(' ')[0]}}</span> 👋</h1>
+        <p class="text-gray-500 text-sm mt-1">
+          <span class="capitalize font-medium text-primary-700">{{developer.dev_role.value if developer.dev_role else 'Developer'}}</span>
+          · {{developer.project.name if developer.project else 'No Project'}}
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <!-- Daily Update Button -->
+        <button onclick="toggleModal('dailyUpdateModal', true)"
+          class="flex items-center gap-2 px-4 py-2.5 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition text-sm shadow-sm">
+          <i class="fas fa-calendar-plus"></i>Add Daily Update
+        </button>
+        <!-- Upload Doc -->
+        <button onclick="toggleModal('uploadDocModal', true)"
+          class="flex items-center gap-2 px-4 py-2.5 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 transition text-sm shadow-sm">
+          <i class="fas fa-upload"></i>Upload Doc
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl font-extrabold text-gray-900">{{total_raised}}</div>
+        <div class="text-sm text-gray-500 mt-1">Tickets Raised</div>
+        <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+          <div class="bg-primary-500 h-1.5 rounded-full" style="width:100%"></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl font-extrabold text-blue-600">{{in_progress}}</div>
+        <div class="text-sm text-gray-500 mt-1">In Progress</div>
+        <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+          <div class="bg-blue-500 h-1.5 rounded-full" style="width:{% if total_raised %}{{(in_progress/total_raised*100)|int}}{% else %}0{% endif %}%"></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl font-extrabold text-yellow-600">{{pending}}</div>
+        <div class="text-sm text-gray-500 mt-1">Open / Pending</div>
+        <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+          <div class="bg-yellow-400 h-1.5 rounded-full" style="width:{% if total_raised %}{{(pending/total_raised*100)|int}}{% else %}0{% endif %}%"></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl font-extrabold text-green-600">{{completed}}</div>
+        <div class="text-sm text-gray-500 mt-1">Resolved</div>
+        <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+          <div class="bg-green-500 h-1.5 rounded-full" style="width:{% if total_raised %}{{(completed/total_raised*100)|int}}{% else %}0{% endif %}%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Team Tickets Assigned To Me -->
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-gray-900">
+            <i class="fas fa-inbox text-primary-500 mr-2"></i>
+            Team Tickets ({{developer.dev_role.value.capitalize() if developer.dev_role else 'All'}} Team)
+          </h3>
+          <span class="text-xs text-gray-400">{{team_tickets|length}} tickets</span>
+        </div>
+        {% if team_tickets %}
+        <div class="space-y-3">
+          {% for t in team_tickets[:8] %}
+          <div class="flex items-center justify-between p-3 rounded-xl border border-gray-100 ticket-row cursor-pointer"
+            onclick="location.href='/developer/ticket/{{t.id}}'">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-bug text-primary-600 text-xs"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="font-medium text-gray-900 text-sm truncate">{{t.title}}</div>
+                <div class="text-xs text-gray-400">By {{t.raised_by.name}} · #{{t.id}}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium badge-{{t.priority.value}} capitalize">{{t.priority.value}}</span>
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium badge-{{t.status.value}} capitalize">{{t.status.value.replace('_',' ')}}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-10 text-gray-400">
+          <i class="fas fa-check-double text-4xl mb-3 text-green-400"></i>
+          <p class="text-sm">No active tickets for your team right now.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Right column: Recent Updates + All Project Tickets preview -->
+      <div class="space-y-5">
+        <!-- Recent Daily Updates -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <i class="fas fa-clipboard-list text-green-500"></i>Recent Updates
+          </h3>
+          {% if recent_updates %}
+          <div class="space-y-3">
+            {% for upd in recent_updates %}
+            <div class="p-3 bg-green-50 rounded-xl border border-green-100">
+              <p class="text-sm text-gray-700 leading-relaxed">{{upd.content[:120]}}{% if upd.content|length > 120 %}…{% endif %}</p>
+              <p class="text-xs text-gray-400 mt-1">{{upd.created_at.strftime('%b %d, %I:%M %p') if upd.created_at else ''}}</p>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-sm text-gray-400 text-center py-4">No daily updates yet. Add your first!</p>
+          {% endif %}
+        </div>
+
+        <!-- All Project Tickets (view only) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <i class="fas fa-project-diagram text-purple-500"></i>Project Activity
+          </h3>
+          <div class="space-y-2 max-h-64 overflow-y-auto">
+            {% for t in all_project_tickets[:10] %}
+            <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer text-sm"
+              onclick="location.href='/developer/ticket/{{t.id}}'">
+              <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs
+                {% if t.status.value == 'resolved' %}bg-green-100 text-green-700{% elif t.status.value == 'in_progress' %}bg-blue-100 text-blue-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                {% if t.status.value == 'resolved' %}<i class="fas fa-check"></i>{% elif t.status.value == 'in_progress' %}<i class="fas fa-spinner"></i>{% else %}<i class="fas fa-clock"></i>{% endif %}
+              </span>
+              <span class="flex-1 truncate text-gray-700">{{t.title}}</span>
+              <span class="text-xs text-gray-400">#{{t.id}}</span>
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-400 text-center py-3">No project tickets yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Daily Update Modal -->
+<div id="dailyUpdateModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade">
+    <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-gray-900"><i class="fas fa-calendar-plus text-green-500 mr-2"></i>Add Daily Update</h2>
+      <button onclick="toggleModal('dailyUpdateModal', false)" class="text-gray-400 hover:text-gray-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+    <form method="post" action="/developer/daily-update" class="p-6 space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">What did you work on today?</label>
+        <textarea name="content" rows="4" required placeholder="e.g. Fixed the login bug, implemented user profile API, reviewed 3 PRs..."
+          class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400 text-sm resize-none"></textarea>
+      </div>
+      <div class="flex gap-3 justify-end">
+        <button type="button" onclick="toggleModal('dailyUpdateModal', false)"
+          class="px-5 py-2.5 text-gray-600 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50">Cancel</button>
+        <button type="submit" class="px-5 py-2.5 bg-green-500 text-white rounded-xl text-sm font-semibold hover:bg-green-600 transition">
+          <i class="fas fa-paper-plane mr-1.5"></i>Submit Update
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Upload Doc Modal -->
+<div id="uploadDocModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade">
+    <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-gray-900"><i class="fas fa-upload text-purple-500 mr-2"></i>Upload Documentation</h2>
+      <button onclick="toggleModal('uploadDocModal', false)" class="text-gray-400 hover:text-gray-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+    <div class="p-6">
+      <div class="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center mb-4" id="dropZone">
+        <i class="fas fa-cloud-upload-alt text-5xl text-gray-300 mb-3"></i>
+        <p class="text-gray-600 font-medium mb-1">Drop files here or click to upload</p>
+        <p class="text-xs text-gray-400">PDF, TXT, MD, DOCX — Max 20MB</p>
+        <input type="file" id="docFile" accept=".pdf,.txt,.md,.docx" class="hidden" onchange="handleFileSelect(this)"/>
+        <button type="button" onclick="document.getElementById('docFile').click()"
+          class="mt-3 px-4 py-2 bg-purple-50 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-100 transition">
+          Browse Files
+        </button>
+      </div>
+      <div id="uploadStatus" class="hidden p-3 bg-blue-50 rounded-xl text-sm text-blue-700 flex items-center gap-2">
+        <i class="fas fa-spinner fa-spin"></i><span>Uploading and indexing...</span>
+      </div>
+      <div id="uploadResult" class="hidden"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function handleFileSelect(input) {
+  if(!input.files.length) return;
+  const file = input.files[0];
+  const status = document.getElementById('uploadStatus');
+  const result = document.getElementById('uploadResult');
+  status.classList.remove('hidden');
+  result.classList.add('hidden');
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await fetch('/developer/upload-document', { method: 'POST', body: formData });
+    const data = await res.json();
+    status.classList.add('hidden');
+    if(res.ok) {
+      result.innerHTML = `<div class="p-3 bg-green-50 rounded-xl text-sm text-green-700">
+        <i class="fas fa-check-circle mr-2"></i><strong>${data.filename}</strong> uploaded. ${data.chunks_indexed} chunks indexed in vector DB!
+      </div>`;
+    } else {
+      result.innerHTML = `<div class="p-3 bg-red-50 rounded-xl text-sm text-red-700"><i class="fas fa-exclamation-circle mr-2"></i>${data.detail || 'Upload failed'}</div>`;
+    }
+    result.classList.remove('hidden');
+  } catch(e) {
+    status.classList.add('hidden');
+    result.innerHTML = `<div class="p-3 bg-red-50 rounded-xl text-sm text-red-700">Upload error: ${e.message}</div>`;
+    result.classList.remove('hidden');
+  }
+}
+
+// Drag & Drop
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-purple-400','bg-purple-50'); });
+dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-purple-400','bg-purple-50'); });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('border-purple-400','bg-purple-50');
+  const fi = document.getElementById('docFile');
+  fi.files = e.dataTransfer.files;
+  handleFileSelect(fi);
+});
+</script>
+{% endblock %}

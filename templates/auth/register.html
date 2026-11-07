@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Register - DevResolve AI{% endblock %}
+{% block body %}
+<div class="min-h-screen gradient-bg flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-robot text-white text-3xl"></i>
+      </div>
+      <h1 class="text-3xl font-extrabold text-white">Create Account</h1>
+      <p class="text-white/70 mt-2">Join DevResolve AI as a Developer</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-2xl p-8">
+      <!-- Google -->
+      <a href="/auth/google" class="flex items-center justify-center gap-3 w-full py-3 border-2 border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition font-semibold text-gray-700 mb-4">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"/>
+        Register with Google
+      </a>
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex-1 h-px bg-gray-200"></div>
+        <span class="text-xs text-gray-400 font-medium">or register with email</span>
+        <div class="flex-1 h-px bg-gray-200"></div>
+      </div>
+
+      {% if error %}
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
+        <i class="fas fa-exclamation-circle"></i>{{error}}
+      </div>
+      {% endif %}
+
+      <form method="post" action="/auth/register" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+          <input type="text" name="name" required placeholder="John Doe"
+            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"/>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
+          <input type="email" name="email" required placeholder="dev@company.com"
+            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"/>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+          <input type="password" name="password" required placeholder="Min 8 characters"
+            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"/>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Project</label>
+          <select name="project_id" required id="projectSelect" onchange="fetchManager(this.value)"
+            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm bg-white">
+            <option value="">-- Choose a project --</option>
+            {% for p in projects %}
+            <option value="{{p.id}}">{{p.name}}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="managerInfo" class="hidden p-3 bg-primary-50 rounded-xl text-sm">
+          <div class="flex items-center gap-2 text-primary-700">
+            <i class="fas fa-user-tie"></i>
+            <span>Manager: <strong id="managerName"></strong></span>
+          </div>
+        </div>
+        <button type="submit" class="w-full py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition">
+          <i class="fas fa-user-plus mr-2"></i>Register & Request Access
+        </button>
+      </form>
+      <p class="text-center text-sm text-gray-500 mt-4">
+        Already have an account? <a href="/auth/login" class="text-primary-600 font-semibold hover:underline">Login</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function fetchManager(projectId) {
+  if(!projectId) { document.getElementById('managerInfo').classList.add('hidden'); return; }
+  const res = await fetch(`/auth/project-info/${projectId}`);
+  if(res.ok) {
+    const data = await res.json();
+    document.getElementById('managerName').textContent = data.manager_name;
+    document.getElementById('managerInfo').classList.remove('hidden');
+  }
+}
+</script>
+{% endblock %}

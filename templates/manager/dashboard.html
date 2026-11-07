@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Manager Dashboard - DevResolve AI{% endblock %}
+{% block body %}
+<div class="flex min-h-screen bg-gray-50">
+  {% set active = 'dashboard' %}
+  {% set pending_count = pending_requests %}
+  {% include "manager/_sidebar.html" %}
+
+  <main class="ml-64 flex-1 p-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Manager Dashboard</h1>
+        <p class="text-gray-500 text-sm mt-1">Welcome back, <strong>{{current_user.name}}</strong></p>
+      </div>
+      <div class="text-sm text-gray-400">
+        <i class="fas fa-calendar mr-1"></i>
+        <span id="currentDate"></span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+      <div class="bg-white rounded-2xl p-5 shadow-sm card-hover border border-gray-100">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-clock text-yellow-600"></i>
+          </div>
+          <span class="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full font-medium">Pending</span>
+        </div>
+        <div class="text-3xl font-extrabold text-gray-900">{{pending_requests}}</div>
+        <div class="text-sm text-gray-500 mt-1">Access Requests</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm card-hover border border-gray-100">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-users text-blue-600"></i>
+          </div>
+        </div>
+        <div class="text-3xl font-extrabold text-gray-900">{{total_devs}}</div>
+        <div class="text-sm text-gray-500 mt-1">Active Developers</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm card-hover border border-gray-100">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-ticket-alt text-orange-600"></i>
+          </div>
+          <span class="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full font-medium">Active</span>
+        </div>
+        <div class="text-3xl font-extrabold text-gray-900">{{open_tickets}}</div>
+        <div class="text-sm text-gray-500 mt-1">Open Tickets</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm card-hover border border-gray-100">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-check-circle text-green-600"></i>
+          </div>
+        </div>
+        <div class="text-3xl font-extrabold text-gray-900">{{resolved_tickets}}</div>
+        <div class="text-sm text-gray-500 mt-1">Resolved Tickets</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Pending Requests -->
+      <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-gray-900">Pending Requests</h3>
+          <a href="/manager/requests" class="text-xs text-primary-600 hover:underline">View all →</a>
+        </div>
+        {% if recent_requests %}
+        <div class="space-y-3">
+          {% for req in recent_requests %}
+          <div class="p-3 bg-yellow-50 rounded-xl border border-yellow-100">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-xs font-bold text-primary-700">
+                {{req.developer.name[0].upper()}}
+              </div>
+              <span class="font-semibold text-sm text-gray-900">{{req.developer.name}}</span>
+            </div>
+            <p class="text-xs text-gray-500 ml-9">{{req.project.name}}</p>
+            <div class="flex gap-2 mt-2 ml-9">
+              <a href="/manager/requests" class="text-xs bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600">Review</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-400">
+          <i class="fas fa-check-circle text-3xl mb-2 text-green-400"></i>
+          <p class="text-sm">No pending requests!</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Recent Tickets -->
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-gray-900">Recent Tickets</h3>
+          <a href="/manager/tickets" class="text-xs text-primary-600 hover:underline">View all →</a>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-gray-400 border-b border-gray-100">
+                <th class="pb-2 text-left font-medium">#ID</th>
+                <th class="pb-2 text-left font-medium">Title</th>
+                <th class="pb-2 text-left font-medium">Raised By</th>
+                <th class="pb-2 text-left font-medium">Team</th>
+                <th class="pb-2 text-left font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              {% for t in recent_tickets %}
+              <tr class="ticket-row cursor-pointer" onclick="location.href='/developer/ticket/{{t.id}}'">
+                <td class="py-3 text-gray-400 font-mono">#{{t.id}}</td>
+                <td class="py-3 font-medium text-gray-900 max-w-xs truncate">{{t.title}}</td>
+                <td class="py-3 text-gray-500">{{t.raised_by.name}}</td>
+                <td class="py-3">
+                  <span class="px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full text-xs font-medium capitalize">{{t.assigned_team.value}}</span>
+                </td>
+                <td class="py-3">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-medium badge-{{t.status.value}} capitalize">{{t.status.value.replace('_',' ')}}</span>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="py-8 text-center text-gray-400">No tickets yet</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+</script>
+{% endblock %}

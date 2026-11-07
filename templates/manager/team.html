@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Dev Team - DevResolve AI{% endblock %}
+{% block body %}
+<div class="flex min-h-screen bg-gray-50">
+  {% set active = 'team' %}
+  {% set pending_count = 0 %}
+  {% include "manager/_sidebar.html" %}
+
+  <main class="ml-64 flex-1 p-8">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-900">Development Team</h1>
+      <p class="text-gray-500 text-sm mt-1">Manage your approved developers and their roles</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      {% for dev in developers %}
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 card-hover">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-700 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+            {{dev.name[0].upper()}}
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-gray-900 truncate">{{dev.name}}</h3>
+            <p class="text-sm text-gray-500 truncate">{{dev.email}}</p>
+            <span class="inline-block mt-1 px-2.5 py-0.5 bg-primary-50 text-primary-700 rounded-full text-xs font-medium capitalize">
+              {{dev.dev_role.value if dev.dev_role else 'unassigned'}}
+            </span>
+          </div>
+        </div>
+
+        <form method="post" action="/manager/team/{{dev.id}}/update-role" class="flex gap-2">
+          <select name="dev_role" class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
+            {% for role in dev_roles %}
+            <option value="{{role}}" {% if dev.dev_role and dev.dev_role.value == role %}selected{% endif %}>
+              {{role.capitalize()}}
+            </option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700 transition">
+            Update
+          </button>
+        </form>
+      </div>
+      {% else %}
+      <div class="col-span-3 text-center py-12 text-gray-400">
+        <i class="fas fa-users text-5xl mb-3"></i>
+        <p>No approved developers yet. Approve access requests first.</p>
+        <a href="/manager/requests" class="text-primary-600 hover:underline text-sm mt-2 inline-block">Go to Access Requests →</a>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+{% endblock %}

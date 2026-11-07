@@ -1,0 +1,45 @@
+<!-- Developer Sidebar -->
+<aside class="w-64 gradient-bg min-h-screen flex flex-col py-6 px-4 fixed top-0 left-0 z-30">
+  <div class="flex items-center gap-3 mb-8 px-2">
+    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+      <i class="fas fa-robot text-white text-xl"></i>
+    </div>
+    <div>
+      <div class="text-white font-bold">DevResolve AI</div>
+      <div class="text-white/50 text-xs">Developer Portal</div>
+    </div>
+  </div>
+
+  <!-- User info -->
+  <div class="bg-white/10 rounded-xl p-3 mb-6 flex items-center gap-3">
+    <div class="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
+      {% if current_user and current_user.avatar %}
+      <img src="{{current_user.avatar}}" class="w-full h-full object-cover" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div class="hidden w-9 h-9 bg-white/20 rounded-full items-center justify-center text-white font-bold text-sm absolute">{{current_user.name[0].upper() if current_user else 'D'}}</div>
+      {% else %}
+      <div class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">
+        {{current_user.name[0].upper() if current_user else 'D'}}
+      </div>
+      {% endif %}
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="text-white text-sm font-semibold truncate">{{current_user.name if current_user else 'Developer'}}</div>
+      <div class="text-white/50 text-xs truncate capitalize">
+        {{developer.dev_role.value if developer else 'dev'}} developer
+      </div>
+    </div>
+  </div>
+
+  <nav class="flex-1 space-y-1">
+    <a href="/developer/dashboard" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='dashboard' %}active{% endif %}">
+      <i class="fas fa-tachometer-alt w-5"></i>Dashboard
+    </a>
+    <a href="/developer/my-issues" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='issues' %}active{% endif %}">
+      <i class="fas fa-ticket-alt w-5"></i>My Issues
+    </a>
+  </nav>
+
+  <a href="/auth/logout" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:text-white text-sm mt-auto">
+    <i class="fas fa-sign-out-alt w-5"></i>Logout
+  </a>
+</aside>
