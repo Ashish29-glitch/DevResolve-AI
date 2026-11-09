@@ -18,20 +18,27 @@
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr class="text-xs text-gray-500">
               <th class="px-5 py-3 text-left font-semibold">Filename</th>
+              <th class="px-5 py-3 text-left font-semibold">Project</th>
               <th class="px-5 py-3 text-left font-semibold">Uploaded By</th>
               <th class="px-5 py-3 text-left font-semibold">Chunks Indexed</th>
               <th class="px-5 py-3 text-left font-semibold">Size</th>
               <th class="px-5 py-3 text-left font-semibold">Date</th>
+              <th class="px-5 py-3 text-left font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             {% for doc in documents %}
-            <tr>
+            <tr class="hover:bg-gray-50 transition">
               <td class="px-5 py-4">
                 <div class="flex items-center gap-2">
                   <i class="fas fa-file-alt text-primary-400"></i>
                   <span class="font-medium text-gray-900">{{doc.original_name}}</span>
                 </div>
+              </td>
+              <td class="px-5 py-4">
+                <span class="px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full text-xs font-medium">
+                  {{doc.project.name if doc.project else 'General'}}
+                </span>
               </td>
               <td class="px-5 py-4 text-gray-600">{{doc.uploader.name}}</td>
               <td class="px-5 py-4">
@@ -45,12 +52,23 @@
               <td class="px-5 py-4 text-gray-400 text-xs">
                 {{doc.created_at.strftime('%b %d, %Y') if doc.created_at else '—'}}
               </td>
+              <td class="px-5 py-4">
+                <form method="post" action="/manager/documents/{{doc.id}}/delete">
+                  <button type="submit"
+                    onclick="return confirm('Delete &quot;{{doc.original_name}}&quot;? This will also remove it from the AI index and cannot be undone.')"
+                    class="px-3 py-1.5 bg-red-50 text-red-500 border border-red-200 rounded-lg text-xs font-semibold hover:bg-red-100 transition flex items-center gap-1 whitespace-nowrap">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                </form>
+              </td>
             </tr>
             {% else %}
-            <tr><td colspan="5" class="py-12 text-center text-gray-400">
-              <i class="fas fa-upload text-4xl mb-3 text-gray-300"></i>
-              <p>No documents uploaded yet. Developers can upload docs from their dashboard.</p>
-            </td></tr>
+            <tr>
+              <td colspan="7" class="py-12 text-center text-gray-400">
+                <i class="fas fa-upload text-4xl mb-3 text-gray-300 block"></i>
+                <p>No documents uploaded yet. Developers can upload docs from their dashboard.</p>
+              </td>
+            </tr>
             {% endfor %}
           </tbody>
         </table>

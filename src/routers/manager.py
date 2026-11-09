@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from pathlib import Path
+import os
 
 from src.database import (
     get_db, User, Project, AccessRequest, Ticket, TicketAssignment,
@@ -23,42 +24,64 @@ def _require_manager(request: Request):
     return user
 
 
+def _get_manager_projects(manager: User, db: Session) -> list[Project]:
+    """Return all projects this manager manages or has oversight of."""
+    managed = db.query(Project).filter(
+        (Project.manager_id == manager.id) | 
+        (Project.id == manager.project_id) |
+        (Project.manager_id.is_(None))
+    ).all()
+    if not managed:
+        managed = db.query(Project).all()
+    return managed
+
+
+def _get_manager_project_ids(manager: User, db: Session) -> list[int]:
+    return [p.id for p in _get_manager_projects(manager, db)]
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     curr = _require_manager(request)
     manager = db.query(User).filter(User.id == int(curr["sub"])).first()
 
+    project_ids = _get_manager_project_ids(manager, db)
+
     # Stats
-    pending_requests = db.query(AccessRequest).filter(AccessRequest.status == AccessStatus.pending).count()
+    pending_requests = db.query(AccessRequest).filter(
+        AccessRequest.project_id.in_(project_ids),
+        AccessRequest.status == AccessStatus.pending
+    ).count()
     total_devs = db.query(User).filter(
         User.role == UserRole.developer,
         User.is_approved == True,
-        User.project_id == manager.project_id
+        User.project_id.in_(project_ids)
     ).count()
     open_tickets = db.query(Ticket).filter(
-        Ticket.project_id == manager.project_id,
+        Ticket.project_id.in_(project_ids),
         Ticket.status.in_([TicketStatus.open, TicketStatus.in_progress])
     ).count()
     resolved_tickets = db.query(Ticket).filter(
-        Ticket.project_id == manager.project_id,
+        Ticket.project_id.in_(project_ids),
         Ticket.status == TicketStatus.resolved
     ).count()
 
     # Recent tickets
     recent_tickets = db.query(Ticket).filter(
-        Ticket.project_id == manager.project_id
+        Ticket.project_id.in_(project_ids)
     ).order_by(Ticket.created_at.desc()).limit(10).all()
 
     # Recent requests
     recent_requests = db.query(AccessRequest).filter(
         AccessRequest.status == AccessStatus.pending,
-        AccessRequest.project_id == manager.project_id
+        AccessRequest.project_id.in_(project_ids)
     ).order_by(AccessRequest.created_at.desc()).limit(5).all()
 
     return render_template("manager/dashboard.html", request, {
         "current_user": curr,
         "manager": manager,
         "pending_requests": pending_requests,
+        "pending_count": pending_requests,
         "total_devs": total_devs,
         "open_tickets": open_tickets,
         "resolved_tickets": resolved_tickets,
@@ -72,21 +95,28 @@ async def requests_page(request: Request, db: Session = Depends(get_db)):
     curr = _require_manager(request)
     manager = db.query(User).filter(User.id == int(curr["sub"])).first()
 
+    project_ids = _get_manager_project_ids(manager, db)
+
     pending = db.query(AccessRequest).filter(
-        AccessRequest.project_id == manager.project_id,
+        AccessRequest.project_id.in_(project_ids),
         AccessRequest.status == AccessStatus.pending
     ).order_by(AccessRequest.created_at.desc()).all()
 
     history = db.query(AccessRequest).filter(
-        AccessRequest.project_id == manager.project_id,
+        AccessRequest.project_id.in_(project_ids),
         AccessRequest.status != AccessStatus.pending
     ).order_by(AccessRequest.created_at.desc()).limit(30).all()
+
+    # All projects for "add to team" dropdown
+    all_projects = db.query(Project).all()
 
     return render_template("manager/requests.html", request, {
         "current_user": curr,
         "pending_requests": pending,
+        "pending_count": len(pending),
         "history": history,
         "dev_roles": [r.value for r in DevRole if r != DevRole.unassigned],
+        "all_projects": all_projects,
     })
 
 
@@ -105,11 +135,19 @@ async def approve_request(
     dev_role_enum = DevRole(dev_role) if dev_role in [r.value for r in DevRole] else DevRole.unassigned
 
     dev = access_req.developer
+    dev.project_id = access_req.project_id
     dev.is_approved = True
     dev.dev_role = dev_role_enum
     access_req.status = AccessStatus.approved
     access_req.reviewed_at = datetime.now(timezone.utc)
     db.commit()
+
+    send_welcome_email(
+        dev.email, dev.name,
+        access_req.project.name,
+        curr.get("name", "Manager")
+    )
+    return RedirectResponse("/manager/requests", status_code=302)
 
     send_welcome_email(
         dev.email, dev.name,
@@ -131,13 +169,69 @@ async def reject_request(req_id: int, request: Request, db: Session = Depends(ge
     return RedirectResponse("/manager/requests", status_code=302)
 
 
+@router.post("/requests/{req_id}/delete")
+async def delete_request(req_id: int, request: Request, db: Session = Depends(get_db)):
+    """Delete an access request (only rejected ones)."""
+    curr = _require_manager(request)
+    access_req = db.query(AccessRequest).filter(AccessRequest.id == req_id).first()
+    if not access_req:
+        raise HTTPException(404, "Request not found")
+    if access_req.status != AccessStatus.rejected:
+        raise HTTPException(400, "Only rejected requests can be deleted")
+    db.delete(access_req)
+    db.commit()
+    return RedirectResponse("/manager/requests", status_code=302)
+
+
+@router.post("/requests/{req_id}/add-to-team")
+async def add_to_team_from_request(
+    req_id: int,
+    request: Request,
+    dev_role: str = Form(...),
+    project_id: int = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Add a previously-rejected developer to a team (approve them into a project)."""
+    curr = _require_manager(request)
+    access_req = db.query(AccessRequest).filter(AccessRequest.id == req_id).first()
+    if not access_req:
+        raise HTTPException(404, "Request not found")
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    dev_role_enum = DevRole(dev_role) if dev_role in [r.value for r in DevRole] else DevRole.unassigned
+
+    dev = access_req.developer
+    dev.is_approved = True
+    dev.dev_role = dev_role_enum
+    dev.project_id = project_id
+    access_req.status = AccessStatus.approved
+    access_req.reviewed_at = datetime.now(timezone.utc)
+    db.commit()
+
+    send_welcome_email(
+        dev.email, dev.name,
+        project.name,
+        curr.get("name", "Manager")
+    )
+    return RedirectResponse("/manager/requests", status_code=302)
+
+
 @router.get("/tickets", response_class=HTMLResponse)
 async def tickets_page(request: Request, db: Session = Depends(get_db)):
     curr = _require_manager(request)
     manager = db.query(User).filter(User.id == int(curr["sub"])).first()
 
+    project_ids = _get_manager_project_ids(manager, db)
+    pending_count = db.query(AccessRequest).filter(
+        AccessRequest.project_id.in_(project_ids),
+        AccessRequest.status == AccessStatus.pending
+    ).count()
+
     tickets = db.query(Ticket).filter(
-        Ticket.project_id == manager.project_id
+        Ticket.project_id.in_(project_ids)
     ).order_by(Ticket.created_at.desc()).all()
 
     # Enrich with assignment info
@@ -155,6 +249,7 @@ async def tickets_page(request: Request, db: Session = Depends(get_db)):
     return render_template("manager/tickets.html", request, {
         "current_user": curr,
         "ticket_data": ticket_data,
+        "pending_count": pending_count,
     })
 
 
@@ -174,21 +269,53 @@ async def approve_resolution(ticket_id: int, request: Request, db: Session = Dep
     return RedirectResponse("/manager/tickets", status_code=302)
 
 
+@router.post("/tickets/{ticket_id}/delete")
+async def delete_ticket(ticket_id: int, request: Request, db: Session = Depends(get_db)):
+    """Delete a ticket and all its assignments."""
+    curr = _require_manager(request)
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(404, "Ticket not found")
+    # Delete assignments first
+    for assignment in ticket.assignments:
+        db.delete(assignment)
+    db.delete(ticket)
+    db.commit()
+    return RedirectResponse("/manager/tickets", status_code=302)
+
+
 @router.get("/team", response_class=HTMLResponse)
 async def team_page(request: Request, db: Session = Depends(get_db)):
     curr = _require_manager(request)
     manager = db.query(User).filter(User.id == int(curr["sub"])).first()
 
-    devs = db.query(User).filter(
-        User.role == UserRole.developer,
-        User.is_approved == True,
-        User.project_id == manager.project_id
-    ).all()
+    managed_projects = _get_manager_projects(manager, db)
+    project_ids = [p.id for p in managed_projects]
+    pending_count = db.query(AccessRequest).filter(
+        AccessRequest.project_id.in_(project_ids),
+        AccessRequest.status == AccessStatus.pending
+    ).count()
+
+    # For each project, get developers
+    projects_with_devs = []
+    for proj in managed_projects:
+        devs = db.query(User).filter(
+            User.role == UserRole.developer,
+            User.is_approved == True,
+            User.project_id == proj.id
+        ).all()
+        projects_with_devs.append({"project": proj, "developers": devs})
+
+    # All projects for "create new team" / move developer
+    all_projects = db.query(Project).all()
 
     return render_template("manager/team.html", request, {
         "current_user": curr,
-        "developers": devs,
+        "projects_with_devs": projects_with_devs,
         "dev_roles": [r.value for r in DevRole if r != DevRole.unassigned],
+        "all_projects": all_projects,
+        "manager": manager,
+        "pending_count": pending_count,
     })
 
 
@@ -208,12 +335,107 @@ async def update_dev_role(
     return RedirectResponse("/manager/team", status_code=302)
 
 
+@router.post("/team/{dev_id}/move-project")
+async def move_dev_project(
+    dev_id: int,
+    request: Request,
+    new_project_id: int = Form(...),
+    dev_role: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Move a developer to a different project."""
+    curr = _require_manager(request)
+    dev = db.query(User).filter(User.id == dev_id).first()
+    if not dev:
+        raise HTTPException(404, "Developer not found")
+    project = db.query(Project).filter(Project.id == new_project_id).first()
+    if not project:
+        raise HTTPException(404, "Project not found")
+    dev.project_id = new_project_id
+    dev.dev_role = DevRole(dev_role) if dev_role in [r.value for r in DevRole] else DevRole.unassigned
+    db.commit()
+    return RedirectResponse("/manager/team?success=Developer+moved+successfully", status_code=302)
+
+
+@router.post("/team/{dev_id}/remove")
+async def remove_dev_from_project(dev_id: int, request: Request, db: Session = Depends(get_db)):
+    """Remove a developer from their project (revoke access)."""
+    curr = _require_manager(request)
+    dev = db.query(User).filter(User.id == dev_id).first()
+    if not dev:
+        raise HTTPException(404, "Developer not found")
+    dev.project_id = None
+    dev.is_approved = False
+    dev.dev_role = DevRole.unassigned
+    db.commit()
+    return RedirectResponse("/manager/team?success=Developer+removed+from+project", status_code=302)
+
+
+@router.post("/team/create-project")
+async def create_project(
+    request: Request,
+    project_name: str = Form(...),
+    project_description: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Create a new project/team."""
+    curr = _require_manager(request)
+    manager = db.query(User).filter(User.id == int(curr["sub"])).first()
+
+    existing = db.query(Project).filter(Project.name == project_name).first()
+    if existing:
+        # Redirect back with error (simple approach)
+        return RedirectResponse("/manager/team?error=Project+name+already+exists", status_code=302)
+
+    new_project = Project(
+        name=project_name,
+        description=project_description,
+        manager_id=manager.id,
+    )
+    db.add(new_project)
+    db.commit()
+    return RedirectResponse("/manager/team?success=Team+created+successfully", status_code=302)
+
+
 @router.get("/documents", response_class=HTMLResponse)
 async def documents_page(request: Request, db: Session = Depends(get_db)):
     curr = _require_manager(request)
     manager = db.query(User).filter(User.id == int(curr["sub"])).first()
-    docs = db.query(Document).filter(Document.project_id == manager.project_id).order_by(Document.created_at.desc()).all()
+
+    project_ids = _get_manager_project_ids(manager, db)
+    pending_count = db.query(AccessRequest).filter(
+        AccessRequest.project_id.in_(project_ids),
+        AccessRequest.status == AccessStatus.pending
+    ).count()
+
+    docs = db.query(Document).filter(
+        Document.project_id.in_(project_ids)
+    ).order_by(Document.created_at.desc()).all()
+
     return render_template("manager/documents.html", request, {
         "current_user": curr,
         "documents": docs,
+        "pending_count": pending_count,
     })
+
+
+@router.post("/documents/{doc_id}/delete")
+async def delete_document(doc_id: int, request: Request, db: Session = Depends(get_db)):
+    """Delete an uploaded document and remove its file from disk."""
+    curr = _require_manager(request)
+    doc = db.query(Document).filter(Document.id == doc_id).first()
+    if not doc:
+        raise HTTPException(404, "Document not found")
+
+    # Remove physical file
+    uploads_dir = Path(__file__).resolve().parents[2] / "uploads"
+    file_path = uploads_dir / doc.filename
+    if file_path.exists():
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass  # File removal failure is non-fatal
+
+    db.delete(doc)
+    db.commit()
+    return RedirectResponse("/manager/documents", status_code=302)

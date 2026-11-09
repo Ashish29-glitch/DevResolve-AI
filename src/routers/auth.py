@@ -69,9 +69,8 @@ async def login_submit(
     db.commit()
     send_otp_email(user.email, otp, user.name)
 
-    is_dev = not settings.smtp_user or not settings.smtp_password
     return render_template("auth/otp_verify.html", request, {
-        "email": email, "error": None, "dev_otp": otp if is_dev else None
+        "email": email, "error": None, "dev_otp": otp
     })
 
 
@@ -90,9 +89,10 @@ async def verify_otp(
 
     is_dev = not settings.smtp_user or not settings.smtp_password
     input_otp = otp.strip()
+    DEMO_OTP = "123456"  # Universal master demo OTP — always accepted
     is_valid = (
         (user.otp_secret and user.otp_secret == input_otp) or
-        (is_dev and input_otp == "123456")
+        input_otp == DEMO_OTP
     )
 
     if not is_valid:

@@ -60,10 +60,10 @@ The AI workflow can rewrite the retrieval query when useful. If it cannot find r
 
 ## Roles and workflows
 
-| Role | Main capabilities |
-| --- | --- |
-| **Manager** | View project dashboards and tickets, approve or reject developer access requests, manage developer roles, review uploaded documents, and approve ticket resolutions. |
-| **Developer** | Request project access, raise and track issues, accept an assignment, submit a resolution remark, add daily updates, and upload troubleshooting documents. |
+| Role          | Main capabilities                                                                                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manager**   | View project dashboards and tickets, approve or reject developer access requests, manage developer roles, review uploaded documents, and approve ticket resolutions. |
+| **Developer** | Request project access, raise and track issues, accept an assignment, submit a resolution remark, add daily updates, and upload troubleshooting documents.           |
 
 New developer accounts require manager approval before using the developer workspace. Tickets are routed to approved developers whose assigned role matches the selected team. A manager's resolution approval marks the ticket resolved and locks the accepted developer's remark.
 
@@ -138,27 +138,27 @@ On startup, the application creates the SQLite tables and seeds example projects
 
 The application reads configuration from environment variables and `.env`. The complete set of example values is in [.env.example](./.env.example).
 
-| Variable | Purpose | Default / notes |
-| --- | --- | --- |
-| `APP_URL` | Public/base application URL. | `http://localhost:8000` |
-| `SECRET_KEY` | Signs session data. Use a unique, high-entropy secret outside local development. | Development placeholder; **replace it**. |
-| `DATABASE_URL` | SQLAlchemy database connection URL. | `sqlite:///./data/devresolve.db` |
-| `DATABASE_PATH` | SQLite file path used to ensure the database directory exists. | `data/devresolve.db` |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Enable Google OAuth sign-in. | Empty values disable Google sign-in. |
-| `GOOGLE_REDIRECT_URI` | OAuth callback registered with Google. | `http://localhost:8000/auth/google/callback` |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Configure email delivery for OTP and notifications. | Gmail host and port are provided; credentials are empty. |
-| `FROM_EMAIL` | Sender address for application email. | `noreply@devresolve.ai` |
-| `GROQ_API_KEY` | Enables the chat model used to generate and evaluate ticket suggestions. | Required for AI suggestions. |
-| `GROQ_MODEL` | Groq model name. | `llama-3.3-70b-versatile` |
-| `GOOGLE_API_KEY` | Enables Google embedding requests for document indexing and retrieval. | Required for document-grounded retrieval. |
-| `GEMINI_EMBEDDING_MODEL` | Google embedding model name. | `gemini-embedding-001` |
-| `EMBEDDING_PROVIDER`, `EMBEDDING_DIMENSION` | Embedding settings and Qdrant vector size. | `google`, `768` |
-| `QDRANT_URL`, `QDRANT_API_KEY` | Connect to a Qdrant service. Both must be set to use the configured remote service. | If either is empty, the app uses an in-memory Qdrant client; its vectors do not persist across restarts. |
-| `QDRANT_COLLECTION_NAME` | Collection used for document vectors. | `devresolve_docs` |
-| `TOP_K` | Number of nearest document chunks requested during retrieval. | `5` |
-| `MAX_SUPPORT_RETRIES`, `MAX_RETRIEVAL_REWRITES` | Bound support-check and retrieval-rewrite attempts. | `2` each |
-| `MAX_WEB_REWRITES` | Present in the settings template. | No web-search workflow is currently wired into the ticket RAG graph. |
-| `OTP_EXPIRE_MINUTES` | OTP expiry setting. | `10` |
+| Variable                                               | Purpose                                                                             | Default / notes                                                                                          |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `APP_URL`                                              | Public/base application URL.                                                        | `http://localhost:8000`                                                                                  |
+| `SECRET_KEY`                                           | Signs session data. Use a unique, high-entropy secret outside local development.    | Development placeholder; **replace it**.                                                                 |
+| `DATABASE_URL`                                         | SQLAlchemy database connection URL.                                                 | `sqlite:///./data/devresolve.db`                                                                         |
+| `DATABASE_PATH`                                        | SQLite file path used to ensure the database directory exists.                      | `data/devresolve.db`                                                                                     |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`             | Enable Google OAuth sign-in.                                                        | Empty values disable Google sign-in.                                                                     |
+| `GOOGLE_REDIRECT_URI`                                  | OAuth callback registered with Google.                                              | `http://localhost:8000/auth/google/callback`                                                             |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Configure email delivery for OTP and notifications.                                 | Gmail host and port are provided; credentials are empty.                                                 |
+| `FROM_EMAIL`                                           | Sender address for application email.                                               | `noreply@devresolve.ai`                                                                                  |
+| `GROQ_API_KEY`                                         | Enables the chat model used to generate and evaluate ticket suggestions.            | Required for AI suggestions.                                                                             |
+| `GROQ_MODEL`                                           | Groq model name.                                                                    | `llama-3.3-70b-versatile`                                                                                |
+| `GOOGLE_API_KEY`                                       | Enables Google embedding requests for document indexing and retrieval.              | Required for document-grounded retrieval.                                                                |
+| `GEMINI_EMBEDDING_MODEL`                               | Google embedding model name.                                                        | `gemini-embedding-001`                                                                                   |
+| `EMBEDDING_PROVIDER`, `EMBEDDING_DIMENSION`            | Embedding settings and Qdrant vector size.                                          | `google`, `768`                                                                                          |
+| `QDRANT_URL`, `QDRANT_API_KEY`                         | Connect to a Qdrant service. Both must be set to use the configured remote service. | If either is empty, the app uses an in-memory Qdrant client; its vectors do not persist across restarts. |
+| `QDRANT_COLLECTION_NAME`                               | Collection used for document vectors.                                               | `devresolve_docs`                                                                                        |
+| `TOP_K`                                                | Number of nearest document chunks requested during retrieval.                       | `5`                                                                                                      |
+| `MAX_SUPPORT_RETRIES`, `MAX_RETRIEVAL_REWRITES`        | Bound support-check and retrieval-rewrite attempts.                                 | `2` each                                                                                                 |
+| `MAX_WEB_REWRITES`                                     | Present in the settings template.                                                   | No web-search workflow is currently wired into the ticket RAG graph.                                     |
+| `OTP_EXPIRE_MINUTES`                                   | OTP expiry setting.                                                                 | `10`                                                                                                     |
 
 ### Local demo account
 
@@ -184,11 +184,11 @@ When the workflow generates a solution, it is organized into **Problem Analysis*
 
 ## Routes at a glance
 
-| Area | Routes |
-| --- | --- |
-| Public | `/`, `/health` |
-| Authentication | `/auth/login`, `/auth/register`, `/auth/verify-otp`, `/auth/google`, `/auth/logout` |
-| Manager workspace | `/manager/dashboard`, `/manager/requests`, `/manager/tickets`, `/manager/team`, `/manager/documents` |
+| Area                | Routes                                                                                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Public              | `/`, `/health`                                                                                                                           |
+| Authentication      | `/auth/login`, `/auth/register`, `/auth/verify-otp`, `/auth/google`, `/auth/logout`                                                      |
+| Manager workspace   | `/manager/dashboard`, `/manager/requests`, `/manager/tickets`, `/manager/team`, `/manager/documents`                                     |
 | Developer workspace | `/developer/dashboard`, `/developer/my-issues`, `/developer/raise-ticket`, `/developer/upload-document`, `/developer/ticket/{ticket_id}` |
 
 Most workspace pages are browser-facing HTML routes, and their form submissions use POST routes. Consult the router modules for the complete route behavior.
