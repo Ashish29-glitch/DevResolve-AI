@@ -42,18 +42,18 @@ sequenceDiagram
     participant App as DevResolve AI
     participant Store as Qdrant knowledge base
     participant Model as Groq model
-    participant Manager as Project manager
+    participant Mgr as Project manager
 
     Dev->>App: Submit issue, team, and priority
     App->>App: Create ticket and assign matching developers
     App->>Store: Retrieve relevant document chunks
-    Store-->>App: Candidate documentation
+    Store-->>App: Return candidate documentation
     App->>Model: Evaluate relevance and draft a solution
-    Model-->>App: Suggested solution and evaluation
-    App-->>Dev: Ticket details, suggestion, and sources
-    Dev->>App: Accept assignment and submit a resolution remark
-    Manager->>App: Review and approve resolution
-    App-->>Manager: Ticket marked resolved; remarks locked
+    Model-->>App: Return suggestion and evaluation
+    App-->>Dev: Show ticket, suggestion, and sources
+    Dev->>App: Accept assignment and submit resolution remark
+    Mgr->>App: Review and approve the resolution
+    App-->>Mgr: Mark ticket resolved and lock remarks
 ```
 
 The AI workflow can rewrite the retrieval query when useful. If it cannot find relevant internal documentation after its configured retries, it returns general troubleshooting guidance and suggests where to look next. Generated text is not an automatic fix and should be reviewed by a developer.
