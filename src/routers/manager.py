@@ -1,10 +1,11 @@
 """Manager Router"""
 from datetime import datetime, timezone
-from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from fastapi import APIRouter, Request, Depends, Form, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from pathlib import Path
 import os
+import shutil
 
 from src.database import (
     get_db, User, Project, AccessRequest, Ticket, TicketAssignment,
@@ -12,9 +13,13 @@ from src.database import (
 )
 from src.auth.jwt_handler import get_current_user_from_request, create_access_token
 from src.auth.otp import send_welcome_email
+from src.auth.hash import verify_password, hash_password
+from src.rag.ingestion import ingest_file, SUPPORTED
 from src.templates import render_template
 
 router = APIRouter(prefix="/manager", tags=["manager"])
+UPLOADS = Path(__file__).resolve().parents[2] / "uploads"
+UPLOADS.mkdir(exist_ok=True)
 
 
 def _require_manager(request: Request):
@@ -125,6 +130,7 @@ async def approve_request(
     req_id: int,
     request: Request,
     dev_role: str = Form(...),
+    project_id: int = Form(None),
     db: Session = Depends(get_db)
 ):
     curr = _require_manager(request)
@@ -133,25 +139,23 @@ async def approve_request(
         raise HTTPException(404, "Request not found")
 
     dev_role_enum = DevRole(dev_role) if dev_role in [r.value for r in DevRole] else DevRole.unassigned
+    assigned_project_id = project_id if project_id else access_req.project_id
+    project = db.query(Project).filter(Project.id == assigned_project_id).first()
+    if not project:
+        project = access_req.project
 
     dev = access_req.developer
-    dev.project_id = access_req.project_id
+    dev.project_id = project.id
     dev.is_approved = True
     dev.dev_role = dev_role_enum
+    access_req.project_id = project.id
     access_req.status = AccessStatus.approved
     access_req.reviewed_at = datetime.now(timezone.utc)
     db.commit()
 
     send_welcome_email(
         dev.email, dev.name,
-        access_req.project.name,
-        curr.get("name", "Manager")
-    )
-    return RedirectResponse("/manager/requests", status_code=302)
-
-    send_welcome_email(
-        dev.email, dev.name,
-        access_req.project.name,
+        project.name,
         curr.get("name", "Manager")
     )
     return RedirectResponse("/manager/requests", status_code=302)
@@ -412,11 +416,57 @@ async def documents_page(request: Request, db: Session = Depends(get_db)):
         Document.project_id.in_(project_ids)
     ).order_by(Document.created_at.desc()).all()
 
+    projects = _get_manager_projects(manager, db)
+
     return render_template("manager/documents.html", request, {
         "current_user": curr,
         "documents": docs,
         "pending_count": pending_count,
+        "projects": projects,
     })
+
+
+@router.post("/upload-document")
+async def upload_document_manager(
+    request: Request,
+    file: UploadFile = File(...),
+    project_id: int = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Allow manager to upload documentation to any of their managed projects."""
+    curr = _require_manager(request)
+    manager = db.query(User).filter(User.id == int(curr["sub"])).first()
+
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in SUPPORTED:
+        raise HTTPException(400, "Supported file types: PDF, TXT, MD, DOCX")
+
+    safe_name = Path(file.filename).name
+    target = UPLOADS / safe_name
+    with target.open("wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    file_size = target.stat().st_size
+
+    try:
+        from fastapi.concurrency import run_in_threadpool
+        count = await run_in_threadpool(ingest_file, target, project_id)
+    except Exception as e:
+        count = 0
+        print(f"Ingestion error: {e}")
+
+    doc = Document(
+        filename=safe_name,
+        original_name=file.filename,
+        project_id=project_id,
+        uploaded_by_id=manager.id,
+        chunks_indexed=count,
+        file_size=file_size,
+    )
+    db.add(doc)
+    db.commit()
+
+    return JSONResponse({"filename": safe_name, "chunks_indexed": count, "status": "ok"})
 
 
 @router.post("/documents/{doc_id}/delete")
@@ -439,3 +489,74 @@ async def delete_document(doc_id: int, request: Request, db: Session = Depends(g
     db.delete(doc)
     db.commit()
     return RedirectResponse("/manager/documents", status_code=302)
+
+
+@router.get("/profile", response_class=HTMLResponse)
+async def manager_profile_page(request: Request, db: Session = Depends(get_db)):
+    """Manager profile page to view and edit profile details."""
+    curr = _require_manager(request)
+    manager = db.query(User).filter(User.id == int(curr["sub"])).first()
+    project_ids = _get_manager_project_ids(manager, db)
+    pending_count = db.query(AccessRequest).filter(
+        AccessRequest.project_id.in_(project_ids),
+        AccessRequest.status == AccessStatus.pending
+    ).count()
+    managed_projects = _get_manager_projects(manager, db)
+
+    return render_template("manager/profile.html", request, {
+        "current_user": curr,
+        "manager": manager,
+        "pending_count": pending_count,
+        "managed_projects": managed_projects,
+    })
+
+
+@router.post("/profile")
+async def update_manager_profile(
+    request: Request,
+    name: str = Form(...),
+    avatar_url: str = Form(""),
+    current_password: str = Form(""),
+    new_password: str = Form(""),
+    confirm_password: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Update manager profile details (name, avatar, password - email is not editable)."""
+    curr = _require_manager(request)
+    manager = db.query(User).filter(User.id == int(curr["sub"])).first()
+
+    name = name.strip()
+    if not name:
+        return RedirectResponse("/manager/profile?error=Name+cannot+be+empty", status_code=302)
+
+    manager.name = name
+    manager.avatar_url = avatar_url.strip() if avatar_url.strip() else None
+
+    # Handle password change if requested
+    if new_password:
+        if not current_password:
+            return RedirectResponse("/manager/profile?error=Current+password+is+required+to+set+a+new+password", status_code=302)
+        if not manager.password_hash or not verify_password(current_password, manager.password_hash):
+            return RedirectResponse("/manager/profile?error=Incorrect+current+password", status_code=302)
+        if len(new_password) < 6:
+            return RedirectResponse("/manager/profile?error=New+password+must+be+at+least+6+characters", status_code=302)
+        if new_password != confirm_password:
+            return RedirectResponse("/manager/profile?error=New+passwords+do+not+match", status_code=302)
+        manager.password_hash = hash_password(new_password)
+
+    db.commit()
+
+    # Re-issue token so updated name/avatar are reflected immediately
+    token = create_access_token({
+        "sub": str(manager.id),
+        "email": manager.email,
+        "name": manager.name,
+        "role": manager.role.value,
+        "dev_role": manager.dev_role.value if manager.dev_role else "unassigned",
+        "project_id": manager.project_id,
+        "avatar": manager.avatar_url or "",
+    })
+
+    resp = RedirectResponse("/manager/profile?success=Profile+updated+successfully", status_code=302)
+    resp.set_cookie("access_token", token, httponly=True, samesite="lax", max_age=86400)
+    return resp

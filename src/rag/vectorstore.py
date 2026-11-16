@@ -22,21 +22,29 @@ def get_embeddings():
 @lru_cache
 def get_qdrant_client():
     s = get_settings()
-    if s.qdrant_url and s.qdrant_api_key:
-        return QdrantClient(url=s.qdrant_url, api_key=s.qdrant_api_key)
+    if s.qdrant_url and s.qdrant_api_key and not s.qdrant_url.startswith("your-") and s.qdrant_url.startswith("http"):
+        try:
+            client = QdrantClient(url=s.qdrant_url, api_key=s.qdrant_api_key, timeout=5.0)
+            client.get_collections()
+            return client
+        except Exception as e:
+            print(f"Remote Qdrant unavailable: {e}. Using in-memory store.")
     return QdrantClient(location=":memory:")
 
 
 def ensure_collection():
     s = get_settings()
-    client = get_qdrant_client()
-    collections = client.get_collections().collections
-    exists = any(c.name == s.qdrant_collection_name for c in collections)
-    if not exists:
-        client.create_collection(
-            collection_name=s.qdrant_collection_name,
-            vectors_config=VectorParams(size=s.embedding_dimension, distance=Distance.COSINE),
-        )
+    try:
+        client = get_qdrant_client()
+        collections = client.get_collections().collections
+        exists = any(c.name == s.qdrant_collection_name for c in collections)
+        if not exists:
+            client.create_collection(
+                collection_name=s.qdrant_collection_name,
+                vectors_config=VectorParams(size=s.embedding_dimension, distance=Distance.COSINE),
+            )
+    except Exception as e:
+        print(f"Qdrant collection setup notice: {e}")
 
 
 def get_vector_store():

@@ -1,47 +1,59 @@
 {% extends "base.html" %}
 {% block title %}Complete Registration - DevResolve AI{% endblock %}
 {% block body %}
-<div class="min-h-screen gradient-bg flex items-center justify-center p-4">
-  <div class="w-full max-w-md">
+<div class="min-h-screen flex items-center justify-center p-4 relative z-10">
+  <div class="w-full max-w-md animate-fade">
     <div class="text-center mb-8">
-      <img src="{{avatar}}" class="w-20 h-20 rounded-full mx-auto border-4 border-white shadow-lg mb-4" onerror="this.src='https://ui-avatars.com/api/?name={{name}}&background=4f46e5&color=fff'"/>
-      <h2 class="text-2xl font-bold text-white">Almost there, {{name}}!</h2>
-      <p class="text-white/70 mt-1">Select your project to continue</p>
+      <div class="relative inline-block mb-3">
+        <img src="{{avatar}}" class="w-20 h-20 rounded-2xl mx-auto border-2 border-white/80 shadow-xl object-cover" onerror="this.src='https://ui-avatars.com/api/?name={{name}}&background=4f46e5&color=fff'"/>
+        <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] shadow">
+          <i class="fas fa-check"></i>
+        </div>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Almost there, {{name}}!</h2>
+      <p class="text-gray-500 text-xs mt-1">Select your engineering project to request manager access</p>
     </div>
-    <div class="bg-white rounded-2xl shadow-2xl p-8">
+
+    <div class="glass-card rounded-3xl p-8 shadow-2xl border border-white/80">
       {% if error is defined and error %}
-      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{{error}}</div>
+      <div class="mb-5 p-3.5 bg-rose-50/90 border border-rose-200/80 rounded-2xl text-rose-700 text-xs flex items-center gap-2 animate-fade">
+        <i class="fas fa-exclamation-circle text-rose-500"></i>
+        <span>{{error}}</span>
+      </div>
       {% endif %}
+
       <form method="post" action="/auth/google/register" class="space-y-4">
         <input type="hidden" name="email" value="{{email}}"/>
         <input type="hidden" name="name" value="{{name}}"/>
         <input type="hidden" name="google_id" value="{{google_id}}"/>
         <input type="hidden" name="avatar" value="{{avatar}}"/>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Your Email</label>
-          <input type="text" value="{{email}}" disabled class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500"/>
+          <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Authenticated Email</label>
+          <input type="text" value="{{email}}" disabled class="w-full px-4 py-3 rounded-xl text-sm bg-gray-100/70 border border-gray-200/60 text-gray-500"/>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Project</label>
+          <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Select Project Team</label>
           <select name="project_id" required id="projectSelect" onchange="fetchManager(this.value)"
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm bg-white">
+            class="w-full px-4 py-3 rounded-xl text-sm">
             <option value="">-- Choose your project --</option>
             {% for p in projects %}
             <option value="{{p.id}}">{{p.name}}</option>
             {% endfor %}
           </select>
         </div>
-        <div id="managerInfo" class="hidden p-3 bg-primary-50 rounded-xl text-sm">
+        <div id="managerInfo" class="hidden p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-xl text-xs backdrop-blur-sm">
           <div class="flex items-center gap-2 text-primary-700">
-            <i class="fas fa-user-tie"></i>
-            <span>Your Manager: <strong id="managerName"></strong></span>
+            <i class="fas fa-user-shield text-base"></i>
+            <span>Project Manager: <strong id="managerName" class="text-primary-900 font-bold"></strong></span>
           </div>
         </div>
-        <button type="submit" class="w-full py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition">
-          Request Access <i class="fas fa-arrow-right ml-2"></i>
+        <button type="submit" class="w-full py-3.5 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition shadow-lg shadow-primary-500/25 flex items-center justify-center gap-2">
+          <span>Request Project Access</span>
+          <i class="fas fa-arrow-right"></i>
         </button>
       </form>
     </div>
+    <p class="text-center text-gray-400 text-xs mt-6">© 2026 DevResolve AI</p>
   </div>
 </div>
 {% endblock %}

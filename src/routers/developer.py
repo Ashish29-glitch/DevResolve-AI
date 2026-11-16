@@ -11,7 +11,8 @@ from src.database import (
     get_db, User, Project, Ticket, TicketAssignment, DailyUpdate, Document,
     UserRole, TicketStatus, TicketTeam, TicketPriority, DevRole
 )
-from src.auth.jwt_handler import get_current_user_from_request
+from src.auth.jwt_handler import get_current_user_from_request, create_access_token
+from src.auth.hash import verify_password, hash_password
 from src.rag.ingestion import ingest_file, SUPPORTED
 from src.config import get_settings
 from src.templates import render_template
@@ -180,6 +181,24 @@ async def ticket_detail(ticket_id: int, request: Request, db: Session = Depends(
     if not ticket:
         raise HTTPException(404, "Ticket not found")
 
+    # If AI solution is not yet generated, generate it on demand
+    if not ticket.ai_solution:
+        try:
+            from src.rag.self_rag import solve_ticket
+            result = solve_ticket(
+                ticket.title,
+                ticket.description,
+                ticket.assigned_team.value if ticket.assigned_team else "backend",
+                ticket.id
+            )
+            ticket.ai_solution = result.get("ai_solution", "")
+            ticket.ai_route = result.get("ai_route", "Project Documentation")
+            ticket.ai_sources = json.dumps(result.get("sources", []))
+            db.commit()
+            db.refresh(ticket)
+        except Exception as e:
+            print(f"On-demand AI solution generation error: {e}")
+
     # All assignments for this ticket
     assignments = db.query(TicketAssignment).filter(TicketAssignment.ticket_id == ticket_id).all()
     accepted_assignment = next((a for a in assignments if a.is_accepted), None)
@@ -204,6 +223,32 @@ async def ticket_detail(ticket_id: int, request: Request, db: Session = Depends(
         "can_accept": my_assignment is not None and not my_assignment.is_accepted and accepted_assignment is None,
         "can_submit_remark": my_assignment is not None and my_assignment.is_accepted and not my_assignment.remark_locked,
     })
+
+
+@router.post("/ticket/{ticket_id}/regenerate-ai")
+async def regenerate_ai_solution(ticket_id: int, request: Request, db: Session = Depends(get_db)):
+    """Regenerate AI solution for this ticket using knowledge base."""
+    dev, curr_data = _require_developer(request, db)
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(404, "Ticket not found")
+
+    try:
+        from src.rag.self_rag import solve_ticket
+        result = solve_ticket(
+            ticket.title,
+            ticket.description,
+            ticket.assigned_team.value if ticket.assigned_team else "backend",
+            ticket.id
+        )
+        ticket.ai_solution = result.get("ai_solution", "")
+        ticket.ai_route = result.get("ai_route", "Project Documentation")
+        ticket.ai_sources = json.dumps(result.get("sources", []))
+        db.commit()
+    except Exception as e:
+        print(f"Regenerate AI solution notice: {e}")
+
+    return RedirectResponse(f"/developer/ticket/{ticket_id}", status_code=302)
 
 
 @router.post("/ticket/{ticket_id}/accept")
@@ -317,3 +362,63 @@ async def upload_document(
     db.commit()
 
     return JSONResponse({"filename": safe_name, "chunks_indexed": count, "status": "ok"})
+
+
+@router.get("/profile", response_class=HTMLResponse)
+async def developer_profile_page(request: Request, db: Session = Depends(get_db)):
+    """Developer profile view."""
+    dev, curr_data = _require_developer(request, db)
+    return render_template("developer/profile.html", request, {
+        "current_user": curr_data,
+        "developer": dev,
+    })
+
+
+@router.post("/profile")
+async def update_developer_profile(
+    request: Request,
+    name: str = Form(...),
+    avatar_url: str = Form(""),
+    current_password: str = Form(""),
+    new_password: str = Form(""),
+    confirm_password: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Update developer profile (name, avatar, password - email is not editable)."""
+    dev, curr_data = _require_developer(request, db)
+
+    name = name.strip()
+    if not name:
+        return RedirectResponse("/developer/profile?error=Name+cannot+be+empty", status_code=302)
+
+    dev.name = name
+    dev.avatar_url = avatar_url.strip() if avatar_url.strip() else None
+
+    # Handle password change if requested
+    if new_password:
+        if not current_password:
+            return RedirectResponse("/developer/profile?error=Current+password+is+required+to+set+a+new+password", status_code=302)
+        if not dev.password_hash or not verify_password(current_password, dev.password_hash):
+            return RedirectResponse("/developer/profile?error=Incorrect+current+password", status_code=302)
+        if len(new_password) < 6:
+            return RedirectResponse("/developer/profile?error=New+password+must+be+at+least+6+characters", status_code=302)
+        if new_password != confirm_password:
+            return RedirectResponse("/developer/profile?error=New+passwords+do+not+match", status_code=302)
+        dev.password_hash = hash_password(new_password)
+
+    db.commit()
+
+    # Re-issue token so updated name/avatar are reflected immediately
+    token = create_access_token({
+        "sub": str(dev.id),
+        "email": dev.email,
+        "name": dev.name,
+        "role": dev.role.value,
+        "dev_role": dev.dev_role.value if dev.dev_role else "unassigned",
+        "project_id": dev.project_id,
+        "avatar": dev.avatar_url or "",
+    })
+
+    resp = RedirectResponse("/developer/profile?success=Profile+updated+successfully", status_code=302)
+    resp.set_cookie("access_token", token, httponly=True, samesite="lax", max_age=86400)
+    return resp

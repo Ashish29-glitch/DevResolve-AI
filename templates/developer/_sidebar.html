@@ -1,45 +1,83 @@
-<!-- Developer Sidebar -->
-<aside class="w-64 gradient-bg min-h-screen flex flex-col py-6 px-4 fixed top-0 left-0 z-30">
-  <div class="flex items-center gap-3 mb-8 px-2">
-    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-      <i class="fas fa-robot text-white text-xl"></i>
+<!-- Developer Top Navigation Header - Liquid Glass UI -->
+<header class="sticky top-0 z-40 w-full glass-card border-b border-white/80 shadow-glass backdrop-blur-xl">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16 gap-3">
+      
+      <!-- Brand & Portal Identifier -->
+      <div class="flex items-center gap-3 flex-shrink-0">
+        <a href="/developer/dashboard" class="flex items-center gap-2.5 group">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-primary-500/25 border border-white/40 group-hover:scale-105 transition">
+            <i class="fas fa-robot text-base"></i>
+          </div>
+          <div>
+            <div class="font-black text-gray-900 text-sm tracking-tight leading-none">
+              DevResolve <span class="bg-gradient-to-r from-primary-600 to-indigo-600 bg-clip-text text-transparent">AI</span>
+            </div>
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mt-0.5">Developer Portal</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links (Centered) -->
+      <nav class="hidden md:flex items-center gap-1.5">
+        <a href="/developer/dashboard" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if active=='dashboard' %}bg-primary-600 text-white shadow-sm shadow-primary-500/30{% else %}text-gray-600 hover:text-gray-900 hover:bg-white/60{% endif %}">
+          <i class="fas fa-chart-pie text-xs"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="/developer/my-issues" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if active=='issues' %}bg-primary-600 text-white shadow-sm shadow-primary-500/30{% else %}text-gray-600 hover:text-gray-900 hover:bg-white/60{% endif %}">
+          <i class="fas fa-ticket-simple text-xs"></i>
+          <span>My Issues</span>
+        </a>
+        <a href="/developer/profile" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {% if active=='profile' %}bg-primary-600 text-white shadow-sm shadow-primary-500/30{% else %}text-gray-600 hover:text-gray-900 hover:bg-white/60{% endif %}">
+          <i class="fas fa-user-circle text-xs"></i>
+          <span>Profile & Settings</span>
+        </a>
+      </nav>
+
+      <!-- Right User Pod & Actions -->
+      <div class="flex items-center gap-2.5 flex-shrink-0">
+        <!-- Developer Role & Pod Pill -->
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50/80 border border-primary-200/80 rounded-xl text-xs font-bold text-primary-800 shadow-2xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="capitalize">{{developer.dev_role.value if developer and developer.dev_role else 'Dev'}} Pod</span>
+        </span>
+
+        <!-- User Profile Chip -->
+        <a href="/developer/profile" class="flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-white/70 hover:bg-white border border-gray-200/70 shadow-2xs transition group" title="Account Settings">
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-primary-400 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-inner">
+            {% if current_user and current_user.avatar %}
+            <img src="{{current_user.avatar}}" class="w-full h-full object-cover rounded-lg" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+            <span class="hidden">{{current_user.name[0].upper() if current_user else 'D'}}</span>
+            {% else %}
+            {{current_user.name[0].upper() if current_user else 'D'}}
+            {% endif %}
+          </div>
+          <span class="text-xs font-bold text-gray-800 truncate max-w-[120px] group-hover:text-primary-600 transition">{{current_user.name.split(' ')[0] if current_user else 'Developer'}}</span>
+        </a>
+
+        <!-- Sign Out -->
+        <a href="/auth/logout" class="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-transparent hover:border-rose-100 transition shadow-2xs" title="Sign Out">
+          <i class="fas fa-arrow-right-from-bracket text-xs"></i>
+        </a>
+
+        <!-- Mobile Menu Toggle -->
+        <button type="button" onclick="document.getElementById('mobileNav').classList.toggle('hidden')" class="md:hidden p-2 text-gray-500 hover:text-gray-900 rounded-xl">
+          <i class="fas fa-bars text-sm"></i>
+        </button>
+      </div>
     </div>
-    <div>
-      <div class="text-white font-bold">DevResolve AI</div>
-      <div class="text-white/50 text-xs">Developer Portal</div>
+
+    <!-- Mobile Nav Dropdown -->
+    <div id="mobileNav" class="hidden md:hidden py-3 border-t border-gray-100 space-y-1">
+      <a href="/developer/dashboard" class="block px-3 py-2 rounded-lg text-xs font-bold {% if active=='dashboard' %}bg-primary-50 text-primary-700{% else %}text-gray-600{% endif %}">
+        <i class="fas fa-chart-pie mr-2"></i> Dashboard
+      </a>
+      <a href="/developer/my-issues" class="block px-3 py-2 rounded-lg text-xs font-bold {% if active=='issues' %}bg-primary-50 text-primary-700{% else %}text-gray-600{% endif %}">
+        <i class="fas fa-ticket-simple mr-2"></i> My Issues
+      </a>
+      <a href="/developer/profile" class="block px-3 py-2 rounded-lg text-xs font-bold {% if active=='profile' %}bg-primary-50 text-primary-700{% else %}text-gray-600{% endif %}">
+        <i class="fas fa-user-circle mr-2"></i> Profile & Settings
+      </a>
     </div>
   </div>
-
-  <!-- User info -->
-  <div class="bg-white/10 rounded-xl p-3 mb-6 flex items-center gap-3">
-    <div class="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
-      {% if current_user and current_user.avatar %}
-      <img src="{{current_user.avatar}}" class="w-full h-full object-cover" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"/>
-      <div class="hidden w-9 h-9 bg-white/20 rounded-full items-center justify-center text-white font-bold text-sm absolute">{{current_user.name[0].upper() if current_user else 'D'}}</div>
-      {% else %}
-      <div class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">
-        {{current_user.name[0].upper() if current_user else 'D'}}
-      </div>
-      {% endif %}
-    </div>
-    <div class="flex-1 min-w-0">
-      <div class="text-white text-sm font-semibold truncate">{{current_user.name if current_user else 'Developer'}}</div>
-      <div class="text-white/50 text-xs truncate capitalize">
-        {{developer.dev_role.value if developer else 'dev'}} developer
-      </div>
-    </div>
-  </div>
-
-  <nav class="flex-1 space-y-1">
-    <a href="/developer/dashboard" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='dashboard' %}active{% endif %}">
-      <i class="fas fa-tachometer-alt w-5"></i>Dashboard
-    </a>
-    <a href="/developer/my-issues" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='issues' %}active{% endif %}">
-      <i class="fas fa-ticket-alt w-5"></i>My Issues
-    </a>
-  </nav>
-
-  <a href="/auth/logout" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:text-white text-sm mt-auto">
-    <i class="fas fa-sign-out-alt w-5"></i>Logout
-  </a>
-</aside>
+</header>

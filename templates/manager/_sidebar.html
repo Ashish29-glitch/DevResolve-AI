@@ -1,46 +1,103 @@
-<!-- Manager Sidebar Partial -->
-<aside class="w-64 gradient-bg min-h-screen flex flex-col py-6 px-4 fixed top-0 left-0 z-30">
-  <div class="flex items-center gap-3 mb-8 px-2">
-    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-      <i class="fas fa-robot text-white text-xl"></i>
+<!-- Manager Top Navigation Header - Liquid Glass UI -->
+<header class="sticky top-0 z-40 w-full glass-card border-b border-white/80 shadow-glass backdrop-blur-xl">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16 gap-3">
+      
+      <!-- Brand & Console Identifier -->
+      <div class="flex items-center gap-3 flex-shrink-0">
+        <a href="/manager/dashboard" class="flex items-center gap-2.5 group">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-primary-500/25 border border-white/40 group-hover:scale-105 transition">
+            <i class="fas fa-robot text-base"></i>
+          </div>
+          <div>
+            <div class="font-black text-gray-900 text-sm tracking-tight leading-none">
+              DevResolve <span class="bg-gradient-to-r from-primary-600 to-indigo-600 bg-clip-text text-transparent">AI</span>
+            </div>
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mt-0.5">Manager Console</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links (Centered) -->
+      <nav class="hidden lg:flex items-center gap-1">
+        <a href="/manager/dashboard" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if active=='dashboard' %}bg-primary-600 text-white shadow-sm shadow-primary-500/30{% else %}text-gray-600 hover:text-gray-900 hover:bg-white/60{% endif %}">
+          <i class="fas fa-chart-pie text-xs"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="/manager/requests" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if active=='requests' %}bg-primary-600 text-white shadow-sm shadow-primary-500/30{% else %}text-gray-600 hover:text-gray-900 hover:bg-white/60{% endif %}">
+          <i class="fas fa-user-check text-xs"></i>
+          <span>Requests</span>
+          {% if pending_count %}<span class="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full border border-white/30 shadow-2xs">{{pending_count}}</span>{% endif %}
+        </a>
+        <a href="/manager/tickets" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if active=='tickets' %}bg-primary-600 text-white shadow-sm shadow-primary-500/30{% else %}text-gray-600 hover:text-gray-900 hover:bg-white/60{% endif %}">
+          <i class="fas fa-ticket-simple text-xs"></i>
+          <span>Tickets</span>
+        </a>
+        <a href="/manager/team" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if active=='team' %}bg-primary-600 text-white shadow-sm shadow-primary-500/30{% else %}text-gray-600 hover:text-gray-900 hover:bg-white/60{% endif %}">
+          <i class="fas fa-users-gear text-xs"></i>
+          <span>Dev Team</span>
+        </a>
+        <a href="/manager/documents" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if active=='documents' %}bg-primary-600 text-white shadow-sm shadow-primary-500/30{% else %}text-gray-600 hover:text-gray-900 hover:bg-white/60{% endif %}">
+          <i class="fas fa-book-bookmark text-xs"></i>
+          <span>Documents</span>
+        </a>
+        <a href="/manager/profile" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if active=='profile' %}bg-primary-600 text-white shadow-sm shadow-primary-500/30{% else %}text-gray-600 hover:text-gray-900 hover:bg-white/60{% endif %}">
+          <i class="fas fa-user-shield text-xs"></i>
+          <span>Profile</span>
+        </a>
+      </nav>
+
+      <!-- Right Manager Profile & Actions -->
+      <div class="flex items-center gap-2.5 flex-shrink-0">
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200/80 rounded-xl text-[11px] font-bold text-amber-800 shadow-2xs">
+          <i class="fas fa-crown text-[10px] text-amber-500"></i>
+          <span>Manager</span>
+        </span>
+
+        <a href="/manager/profile" class="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-white/70 hover:bg-white border border-gray-200/70 shadow-2xs transition group" title="Manager Profile">
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-primary-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-inner">
+            {% if current_user and current_user.avatar %}
+            <img src="{{current_user.avatar}}" class="w-full h-full object-cover rounded-lg" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+            <span class="hidden">{{current_user.name[0].upper() if current_user else 'M'}}</span>
+            {% else %}
+            {{current_user.name[0].upper() if current_user else 'M'}}
+            {% endif %}
+          </div>
+          <span class="text-xs font-bold text-gray-800 truncate max-w-[110px] group-hover:text-primary-600 transition">{{current_user.name.split(' ')[0] if current_user else 'Manager'}}</span>
+        </a>
+
+        <!-- Sign Out -->
+        <a href="/auth/logout" class="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-transparent hover:border-rose-100 transition shadow-2xs" title="Sign Out">
+          <i class="fas fa-arrow-right-from-bracket text-xs"></i>
+        </a>
+
+        <!-- Mobile Menu Toggle -->
+        <button type="button" onclick="document.getElementById('mobileNavManager').classList.toggle('hidden')" class="lg:hidden p-2 text-gray-500 hover:text-gray-900 rounded-xl">
+          <i class="fas fa-bars text-sm"></i>
+        </button>
+      </div>
     </div>
-    <div>
-      <div class="text-white font-bold">DevResolve AI</div>
-      <div class="text-white/50 text-xs">Manager Portal</div>
+
+    <!-- Mobile Nav Dropdown -->
+    <div id="mobileNavManager" class="hidden lg:hidden py-3 border-t border-gray-100 space-y-1">
+      <a href="/manager/dashboard" class="block px-3 py-2 rounded-lg text-xs font-bold {% if active=='dashboard' %}bg-primary-50 text-primary-700{% else %}text-gray-600{% endif %}">
+        <i class="fas fa-chart-pie mr-2"></i> Dashboard
+      </a>
+      <a href="/manager/requests" class="block px-3 py-2 rounded-lg text-xs font-bold {% if active=='requests' %}bg-primary-50 text-primary-700{% else %}text-gray-600{% endif %}">
+        <i class="fas fa-user-check mr-2"></i> Access Requests {% if pending_count %}<span class="ml-1 bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full">{{pending_count}}</span>{% endif %}
+      </a>
+      <a href="/manager/tickets" class="block px-3 py-2 rounded-lg text-xs font-bold {% if active=='tickets' %}bg-primary-50 text-primary-700{% else %}text-gray-600{% endif %}">
+        <i class="fas fa-ticket-simple mr-2"></i> All Tickets
+      </a>
+      <a href="/manager/team" class="block px-3 py-2 rounded-lg text-xs font-bold {% if active=='team' %}bg-primary-50 text-primary-700{% else %}text-gray-600{% endif %}">
+        <i class="fas fa-users-gear mr-2"></i> Dev Team
+      </a>
+      <a href="/manager/documents" class="block px-3 py-2 rounded-lg text-xs font-bold {% if active=='documents' %}bg-primary-50 text-primary-700{% else %}text-gray-600{% endif %}">
+        <i class="fas fa-book-bookmark mr-2"></i> Documents
+      </a>
+      <a href="/manager/profile" class="block px-3 py-2 rounded-lg text-xs font-bold {% if active=='profile' %}bg-primary-50 text-primary-700{% else %}text-gray-600{% endif %}">
+        <i class="fas fa-user-shield mr-2"></i> Profile
+      </a>
     </div>
   </div>
-
-  <!-- User info -->
-  <div class="bg-white/10 rounded-xl p-3 mb-6 flex items-center gap-3">
-    <div class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">
-      {{current_user.name[0].upper() if current_user else 'M'}}
-    </div>
-    <div class="flex-1 min-w-0">
-      <div class="text-white text-sm font-semibold truncate">{{current_user.name if current_user else 'Manager'}}</div>
-      <div class="text-white/50 text-xs truncate">{{current_user.email if current_user else ''}}</div>
-    </div>
-  </div>
-
-  <nav class="flex-1 space-y-1">
-    <a href="/manager/dashboard" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='dashboard' %}active{% endif %}">
-      <i class="fas fa-tachometer-alt w-5"></i>Dashboard
-    </a>
-    <a href="/manager/requests" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='requests' %}active{% endif %}">
-      <i class="fas fa-user-check w-5"></i>Access Requests
-      {% if pending_count %}<span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{pending_count}}</span>{% endif %}
-    </a>
-    <a href="/manager/tickets" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='tickets' %}active{% endif %}">
-      <i class="fas fa-ticket-alt w-5"></i>All Tickets
-    </a>
-    <a href="/manager/team" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='team' %}active{% endif %}">
-      <i class="fas fa-users w-5"></i>Dev Team
-    </a>
-    <a href="/manager/documents" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/80 hover:text-white text-sm font-medium {% if active=='documents' %}active{% endif %}">
-      <i class="fas fa-file-alt w-5"></i>Documents
-    </a>
-  </nav>
-
-  <a href="/auth/logout" class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:text-white text-sm mt-auto">
-    <i class="fas fa-sign-out-alt w-5"></i>Logout
-  </a>
-</aside>
+</header>

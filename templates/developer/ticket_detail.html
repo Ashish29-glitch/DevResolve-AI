@@ -1,235 +1,344 @@
 {% extends "base.html" %}
 {% block title %}Ticket #{{ticket.id}} - DevResolve AI{% endblock %}
 {% block body %}
-<div class="flex min-h-screen bg-gray-50">
-  {% set active = '' %}
-  {% include "developer/_sidebar.html" %}
+<div class="min-h-screen flex flex-col">
+  {% if current_user and current_user.role == 'manager' %}
+    {% set active = 'tickets' %}
+    {% set pending_count = 0 %}
+    {% include "manager/_sidebar.html" %}
+  {% else %}
+    {% set active = 'issues' %}
+    {% include "developer/_sidebar.html" %}
+  {% endif %}
 
-  <main class="ml-64 flex-1 p-8">
-    <!-- Breadcrumb -->
-    <div class="flex items-center gap-2 text-sm text-gray-400 mb-6">
-      <a href="/developer/dashboard" class="hover:text-primary-600">Dashboard</a>
-      <i class="fas fa-chevron-right text-xs"></i>
-      <a href="/developer/my-issues" class="hover:text-primary-600">My Issues</a>
-      <i class="fas fa-chevron-right text-xs"></i>
-      <span class="text-gray-700">Ticket #{{ticket.id}}</span>
-    </div>
-
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-      <!-- Main Ticket Info -->
-      <div class="xl:col-span-2 space-y-5">
-        <!-- Ticket Header -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
-            <div class="flex-1">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="font-mono text-xs text-gray-400">#{{ticket.id}}</span>
-                <span class="px-2 py-0.5 rounded-full text-xs font-medium badge-{{ticket.status.value}} capitalize">
-                  {{ticket.status.value.replace('_',' ')}}
-                </span>
-                <span class="px-2 py-0.5 rounded-full text-xs font-medium badge-{{ticket.priority.value}} capitalize">
-                  {{ticket.priority.value}}
-                </span>
-              </div>
-              <h1 class="text-xl font-bold text-gray-900">{{ticket.title}}</h1>
-            </div>
-            <div class="flex flex-col gap-1 text-right">
-              <span class="text-xs text-gray-400">Assigned to Team</span>
-              <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold capitalize">
-                {{ticket.assigned_team.value}}
-              </span>
-            </div>
-          </div>
-
-          <div class="p-4 bg-gray-50 rounded-xl mb-4">
-            <h4 class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Issue Description</h4>
-            <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{{ticket.description}}</p>
-          </div>
-
-          <div class="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
-            <span><i class="fas fa-user mr-1 text-primary-400"></i>{{ticket.raised_by.name}}</span>
-            <span><i class="fas fa-calendar mr-1 text-primary-400"></i>{{ticket.created_at.strftime('%b %d, %Y at %I:%M %p') if ticket.created_at else '—'}}</span>
-            {% if ticket.project %}
-            <span><i class="fas fa-project-diagram mr-1 text-primary-400"></i>{{ticket.project.name}}</span>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- AI Solution -->
-        {% if ticket.ai_solution %}
-        <div class="bg-white rounded-2xl shadow-sm border border-primary-100 p-6">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
-              <i class="fas fa-robot text-primary-600 text-lg"></i>
-            </div>
-            <div>
-              <h2 class="font-bold text-gray-900">AI Solution</h2>
-              <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-xs text-gray-400">Source:</span>
-                <span class="text-xs font-medium text-primary-600">{{ticket.ai_route or 'AI Analysis'}}</span>
-              </div>
-            </div>
-          </div>
-          <div class="ai-solution rounded-xl p-4 markdown" id="aiSolutionContent">
-            <pre class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap font-sans">{{ticket.ai_solution}}</pre>
-          </div>
-          {% if sources %}
-          <div class="mt-4">
-            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Sources Used</h4>
-            <div class="flex flex-wrap gap-2">
-              {% for src in sources %}
-              <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs flex items-center gap-1.5">
-                <i class="fas fa-file-alt text-primary-400"></i>
-                {{src.title or src.source}}{% if src.page %} · p.{{src.page}}{% endif %}
-              </span>
-              {% endfor %}
-            </div>
-          </div>
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
+    <div class="space-y-5">
+      <!-- Breadcrumb & Navigation Bar -->
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-2 text-xs font-semibold text-gray-500">
+          {% if current_user and current_user.role == 'manager' %}
+          <a href="/manager/dashboard" class="hover:text-primary-600 transition flex items-center gap-1.5"><i class="fas fa-home text-[11px] text-gray-400"></i>Manager Console</a>
+          <i class="fas fa-chevron-right text-[10px] text-gray-300"></i>
+          <a href="/manager/tickets" class="hover:text-primary-600 transition">All Tickets</a>
+          {% else %}
+          <a href="/developer/dashboard" class="hover:text-primary-600 transition flex items-center gap-1.5"><i class="fas fa-home text-[11px] text-gray-400"></i>Dashboard</a>
+          <i class="fas fa-chevron-right text-[10px] text-gray-300"></i>
+          <a href="/developer/my-issues" class="hover:text-primary-600 transition">My Issues</a>
           {% endif %}
+          <i class="fas fa-chevron-right text-[10px] text-gray-300"></i>
+          <span class="text-primary-700 font-bold bg-primary-50 px-2 py-0.5 rounded-md border border-primary-100">Ticket #{{ticket.id}}</span>
         </div>
+        
+        <!-- Back Link Button -->
+        {% if current_user and current_user.role == 'manager' %}
+        <a href="/manager/tickets" class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-primary-600 transition bg-white/80 hover:bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+          <i class="fas fa-arrow-left text-[10px]"></i> Back to Tickets
+        </a>
         {% else %}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <i class="fas fa-robot text-4xl text-gray-200 mb-3"></i>
-          <p class="text-gray-500">AI solution is being generated...</p>
-          <p class="text-xs text-gray-400 mt-1">Refresh the page in a moment</p>
-        </div>
+        <a href="/developer/my-issues" class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-primary-600 transition bg-white/80 hover:bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+          <i class="fas fa-arrow-left text-[10px]"></i> Back to My Issues
+        </a>
         {% endif %}
+      </div>
 
-        <!-- Resolution / Remark Section -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <i class="fas fa-comment-dots text-green-500"></i>Resolution & Remarks
-          </h2>
+      <!-- Main Layout: Proportional Content + Sticky Inspector -->
+      <div class="flex flex-col lg:flex-row gap-5 items-start">
+        <!-- Main Column (Left): Content, AI Solution, Resolution -->
+        <div class="flex-1 min-w-0 space-y-4">
+          
+          <!-- Ticket Header Card -->
+          <div class="glass-card rounded-2xl p-5 sm:p-6 shadow-glass border border-white/80">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                  <span class="font-mono text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">#{{ticket.id}}</span>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold badge-{{ticket.status.value}} capitalize">
+                    {{ticket.status.value.replace('_',' ')}}
+                  </span>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold badge-{{ticket.priority.value}} capitalize">
+                    {{ticket.priority.value}}
+                  </span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight leading-snug">{{ticket.title}}</h1>
+              </div>
+              <div class="flex-shrink-0">
+                <span class="px-3 py-1 bg-primary-100/80 border border-primary-200 text-primary-800 rounded-xl text-xs font-bold capitalize shadow-2xs inline-flex items-center gap-1.5">
+                  <i class="fas fa-layer-group text-primary-600 text-[11px]"></i>
+                  {{ticket.assigned_team.value}} Pod
+                </span>
+              </div>
+            </div>
 
-          {% if accepted_assignment %}
-          <div class="mb-4 p-4 bg-green-50 rounded-xl border border-green-200">
-            <div class="flex items-center gap-2 mb-2">
-              <i class="fas fa-user-check text-green-600"></i>
-              <span class="font-semibold text-green-800">Accepted by: {{accepted_assignment.developer.name}}</span>
-              {% if accepted_assignment.accepted_at %}
-              <span class="text-xs text-gray-400">· {{accepted_assignment.accepted_at.strftime('%b %d, %I:%M %p')}}</span>
+            <!-- Issue Description: Compact and Clean -->
+            <div class="mt-4 pt-3.5 border-t border-gray-100">
+              <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <i class="fas fa-align-left text-primary-500"></i>
+                <span>Issue Description</span>
+              </div>
+              <div class="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap bg-white/70 rounded-xl p-3.5 border border-gray-100 shadow-2xs">{{ticket.description}}</div>
+            </div>
+
+            <!-- Header Metadata Footer -->
+            <div class="flex items-center gap-4 mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 flex-wrap font-medium">
+              <span class="flex items-center gap-1.5">
+                <i class="fas fa-user-circle text-primary-500"></i>
+                <span>Raised by <strong class="text-gray-700">{{ticket.raised_by.name}}</strong></span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <i class="fas fa-calendar-alt text-primary-500"></i>
+                <span>{{ticket.created_at.strftime('%b %d, %Y at %I:%M %p') if ticket.created_at else '—'}}</span>
+              </span>
+              {% if ticket.project %}
+              <span class="flex items-center gap-1.5">
+                <i class="fas fa-folder-open text-primary-500"></i>
+                <strong class="text-gray-700">{{ticket.project.name}}</strong>
+              </span>
               {% endif %}
             </div>
-            {% if accepted_assignment.remark %}
-            <div class="mt-3 p-3 bg-white rounded-lg border border-green-100">
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-xs font-semibold text-gray-500 uppercase">Developer's Remark</span>
-                {% if accepted_assignment.remark_locked %}
-                <span class="text-xs text-green-600 flex items-center gap-1"><i class="fas fa-lock"></i>Locked by Manager</span>
-                {% endif %}
+          </div>
+
+          <!-- AI Solution Pod -->
+          {% if ticket.ai_solution %}
+          <div class="glass-card rounded-2xl p-5 sm:p-6 shadow-glass border border-primary-200/80 relative overflow-hidden">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-primary-500/25 border border-white/40 flex-shrink-0">
+                  <i class="fas fa-robot text-base"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h2 class="font-extrabold text-gray-900 text-base">Self-RAG Solution</h2>
+                    <span class="bg-primary-50 text-primary-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border border-primary-200">Verified</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
+                    <span>Route:</span>
+                    <span class="font-semibold text-primary-600">{{ticket.ai_route or 'Knowledge Base SOPs'}}</span>
+                  </div>
+                </div>
               </div>
-              <p class="text-sm text-gray-700 leading-relaxed">{{accepted_assignment.remark}}</p>
+              <form method="post" action="/developer/ticket/{{ticket.id}}/regenerate-ai">
+                <button type="submit"
+                  class="px-3 py-1.5 bg-white/90 hover:bg-white text-gray-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs border border-gray-200 hover:shadow-sm"
+                  title="Regenerate AI solution using knowledge base">
+                  <i class="fas fa-sync-alt text-primary-600"></i>
+                  <span>Regenerate</span>
+                </button>
+              </form>
+            </div>
+
+            <div class="ai-solution rounded-xl p-4 sm:p-5 border border-primary-200/60 markdown shadow-inner bg-white/70">
+              <pre class="text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap font-sans">{{ticket.ai_solution}}</pre>
+            </div>
+
+            {% if sources %}
+            <div class="mt-4 pt-3.5 border-t border-primary-100/70">
+              <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <i class="fas fa-book-bookmark text-primary-500"></i>
+                <span>Sources & SOP Citations</span>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                {% for src in sources %}
+                <span class="px-2.5 py-1 bg-white/90 border border-primary-100 text-gray-700 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-2xs">
+                  <i class="fas fa-file-lines text-primary-500 text-[11px]"></i>
+                  <span>{{src.title or src.source}}{% if src.page %} · p.{{src.page}}{% endif %}</span>
+                </span>
+                {% endfor %}
+              </div>
             </div>
             {% endif %}
           </div>
-
-          <!-- Submit Remark (only if I accepted and not locked) -->
-          {% if can_submit_remark %}
-          <form method="post" action="/developer/ticket/{{ticket.id}}/remark" class="space-y-3">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Your Solution Remark</label>
-              <textarea name="remark" rows="4" required
-                placeholder="Describe what you did to resolve this issue, what was the root cause, and how you fixed it..."
-                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400 text-sm resize-none">{{accepted_assignment.remark or ''}}</textarea>
+          {% else %}
+          <!-- AI Solution Pending (Compact Banner - No Awkward Void) -->
+          <div class="glass-card rounded-2xl p-4 sm:p-5 border border-primary-200/70 shadow-glass flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-primary-100/80 border border-primary-200 text-primary-600 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                <i class="fas fa-robot"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-gray-900">AI Solution Pending</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Generate a verified solution from your project runbooks and documentation.</p>
+              </div>
             </div>
-            <button type="submit" class="px-5 py-2.5 bg-green-500 text-white rounded-xl text-sm font-semibold hover:bg-green-600 transition">
-              <i class="fas fa-check mr-1.5"></i>Submit Remark for Manager Review
-            </button>
-          </form>
-          {% endif %}
-
-          {% elif can_accept %}
-          <!-- Accept Button (only if assigned to me and no one else accepted) -->
-          <div class="p-4 bg-blue-50 rounded-xl border border-blue-200 mb-4">
-            <p class="text-sm text-blue-800 mb-3">
-              <i class="fas fa-info-circle mr-1"></i>
-              This ticket is assigned to your team. Review the AI solution above and accept this ticket to start working on it.
-            </p>
-            <form method="post" action="/developer/ticket/{{ticket.id}}/accept">
-              <button type="submit"
-                class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-2"
-                onclick="return confirm('Accept this ticket? You will be responsible for resolving it.')">
-                <i class="fas fa-hand-pointer"></i>Accept This Ticket
+            <form method="post" action="/developer/ticket/{{ticket.id}}/regenerate-ai">
+              <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition inline-flex items-center gap-2 shadow-sm">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <span>Generate Solution</span>
               </button>
             </form>
           </div>
-          {% elif my_assignment and not my_assignment.is_accepted and accepted_assignment %}
-          <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <p class="text-sm text-gray-600">
-              <i class="fas fa-info-circle mr-1 text-gray-400"></i>
-              This ticket was accepted by <strong>{{accepted_assignment.developer.name}}</strong> and is being handled.
-            </p>
-          </div>
-          {% else %}
-          <div class="text-center py-6 text-gray-400">
-            <i class="fas fa-clock text-3xl mb-2"></i>
-            <p class="text-sm">Waiting for a team member to accept this ticket</p>
-          </div>
           {% endif %}
-        </div>
-      </div>
 
-      <!-- Right Panel: Assignment Details -->
-      <div class="space-y-5">
-        <!-- Ticket Meta -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h3 class="font-bold text-gray-900 mb-4">Ticket Details</h3>
-          <div class="space-y-3">
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Status</span>
-              <span class="font-medium capitalize badge-{{ticket.status.value}} px-2 py-0.5 rounded-full text-xs">{{ticket.status.value.replace('_',' ')}}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Priority</span>
-              <span class="font-medium capitalize badge-{{ticket.priority.value}} px-2 py-0.5 rounded-full text-xs">{{ticket.priority.value}}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Team</span>
-              <span class="font-medium text-gray-900 capitalize">{{ticket.assigned_team.value}}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Raised By</span>
-              <span class="font-medium text-gray-900">{{ticket.raised_by.name}}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Created</span>
-              <span class="font-medium text-gray-900">{{ticket.created_at.strftime('%b %d') if ticket.created_at else '—'}}</span>
-            </div>
-          </div>
-        </div>
+          <!-- Resolution & Remarks Card -->
+          <div class="glass-card rounded-2xl p-5 sm:p-6 shadow-glass border border-white/80">
+            <h2 class="font-extrabold text-gray-900 text-base mb-4 flex items-center gap-2">
+              <i class="fas fa-code-commit text-emerald-500"></i>
+              <span>Engineering Resolution & Audit Remarks</span>
+            </h2>
 
-        <!-- Assigned Developers -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h3 class="font-bold text-gray-900 mb-4">
-            <i class="fas fa-users text-primary-500 mr-2"></i>Assigned Developers
-          </h3>
-          {% if assignments %}
-          <div class="space-y-3">
-            {% for a in assignments %}
-            <div class="flex items-center gap-3 p-3 rounded-xl {% if a.is_accepted %}bg-green-50 border border-green-200{% else %}bg-gray-50{% endif %}">
-              <div class="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-sm flex-shrink-0">
-                {{a.developer.name[0].upper()}}
+            {% if accepted_assignment %}
+            <div class="p-4 bg-emerald-50/70 rounded-xl border border-emerald-200/80 mb-4 backdrop-blur-sm">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-user-check text-emerald-600 text-base"></i>
+                  <span class="font-bold text-emerald-900 text-sm">Accepted by: {{accepted_assignment.developer.name}}</span>
+                </div>
+                {% if accepted_assignment.accepted_at %}
+                <span class="text-xs text-emerald-700 font-medium">Accepted {{accepted_assignment.accepted_at.strftime('%b %d, %I:%M %p')}}</span>
+                {% endif %}
               </div>
-              <div class="flex-1 min-w-0">
-                <div class="font-semibold text-sm text-gray-900">{{a.developer.name}}</div>
-                <div class="text-xs text-gray-400 capitalize">{{a.developer.dev_role.value if a.developer.dev_role else ''}} dev</div>
+              {% if accepted_assignment.remark %}
+              <div class="mt-3 p-3.5 bg-white/95 rounded-lg border border-emerald-200/70 shadow-2xs">
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Solution Remark</span>
+                  {% if accepted_assignment.remark_locked %}
+                  <span class="text-[11px] text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    <i class="fas fa-lock text-[10px]"></i> Approved & Locked by Manager
+                  </span>
+                  {% endif %}
+                </div>
+                <p class="text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{{accepted_assignment.remark}}</p>
               </div>
-              {% if a.is_accepted %}
-              <span class="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
-                <i class="fas fa-check"></i>Working
-              </span>
-              {% else %}
-              <span class="text-xs text-gray-400">viewing</span>
               {% endif %}
             </div>
-            {% endfor %}
+
+            <!-- Submit Remark Form -->
+            {% if can_submit_remark %}
+            <form method="post" action="/developer/ticket/{{ticket.id}}/remark" class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Your Solution Remark</label>
+                <textarea name="remark" rows="3" required
+                  placeholder="Detail the root cause, files edited, and verification steps..."
+                  class="w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm resize-none">{{accepted_assignment.remark or ''}}</textarea>
+              </div>
+              <button type="submit" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition shadow-sm flex items-center gap-2">
+                <i class="fas fa-paper-plane"></i>
+                <span>Submit Remark for Manager Review</span>
+              </button>
+            </form>
+            {% endif %}
+
+            {% elif can_accept %}
+            <!-- Accept Action Banner -->
+            <div class="p-4 bg-primary-50/70 rounded-xl border border-primary-200/80 flex items-center justify-between gap-4 flex-wrap backdrop-blur-sm">
+              <div>
+                <p class="text-xs font-bold text-primary-900 flex items-center gap-1.5">
+                  <i class="fas fa-circle-info text-primary-600"></i>
+                  <span>This ticket matches your domain role ({{developer.dev_role.value if developer and developer.dev_role else 'Dev'}}).</span>
+                </p>
+                <p class="text-xs text-primary-700 mt-0.5">Claim ownership of this ticket to start working on the resolution.</p>
+              </div>
+              <form method="post" action="/developer/ticket/{{ticket.id}}/accept">
+                <button type="submit"
+                  class="px-4 py-2 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition flex items-center gap-2 shadow-sm"
+                  onclick="return confirm('Accept this ticket? You will take ownership of resolving it.')">
+                  <i class="fas fa-hand-pointer"></i>
+                  <span>Accept Ticket</span>
+                </button>
+              </form>
+            </div>
+            {% elif my_assignment and not my_assignment.is_accepted and accepted_assignment %}
+            <div class="p-3.5 bg-gray-50/70 rounded-xl border border-gray-200/70 text-xs text-gray-600 flex items-center gap-2">
+              <i class="fas fa-info-circle text-gray-400"></i>
+              <span>Accepted by <strong>{{accepted_assignment.developer.name}}</strong>. In progress.</span>
+            </div>
+            {% else %}
+            <!-- Waiting State: Compact Status Row -->
+            <div class="p-3.5 bg-gray-50/60 rounded-xl border border-gray-100 flex items-center gap-3 text-gray-500">
+              <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0">
+                <i class="fas fa-clock text-sm"></i>
+              </div>
+              <div class="text-xs">
+                <span class="font-bold text-gray-700">Waiting for assignment acceptance</span>
+                <p class="text-gray-400 text-[11px] mt-0.5">A developer assigned to this pod can review and accept this ticket.</p>
+              </div>
+            </div>
+            {% endif %}
           </div>
-          {% else %}
-          <p class="text-sm text-gray-400 text-center py-4">No developers assigned yet. Add more devs to this team.</p>
-          {% endif %}
+        </div>
+
+        <!-- Right Column: Unified Sticky Inspector (320px) -->
+        <div class="w-full lg:w-80 flex-shrink-0 space-y-4 lg:sticky lg:top-20">
+          <div class="glass-card rounded-2xl p-5 shadow-glass border border-white/80">
+            <!-- Inspector Header -->
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
+              <h3 class="font-extrabold text-gray-900 text-sm flex items-center gap-2">
+                <i class="fas fa-sliders text-primary-500"></i>
+                <span>Ticket Inspector</span>
+              </h3>
+              <span class="font-mono text-[11px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">#{{ticket.id}}</span>
+            </div>
+
+            <!-- Ticket Properties -->
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between py-1">
+                <span class="text-gray-400 font-medium">Status</span>
+                <span class="font-bold capitalize badge-{{ticket.status.value}} px-2.5 py-0.5 rounded-full text-[11px]">{{ticket.status.value.replace('_',' ')}}</span>
+              </div>
+              <div class="flex items-center justify-between py-1">
+                <span class="text-gray-400 font-medium">Priority</span>
+                <span class="font-bold capitalize badge-{{ticket.priority.value}} px-2.5 py-0.5 rounded-full text-[11px]">{{ticket.priority.value}}</span>
+              </div>
+              <div class="flex items-center justify-between py-1">
+                <span class="text-gray-400 font-medium">Assigned Pod</span>
+                <span class="font-bold text-gray-800 capitalize bg-gray-100/80 px-2 py-0.5 rounded text-[11px]">{{ticket.assigned_team.value}} Pod</span>
+              </div>
+              <div class="flex items-center justify-between py-1">
+                <span class="text-gray-400 font-medium">Reporter</span>
+                <span class="font-bold text-gray-800 text-[11px]">{{ticket.raised_by.name}}</span>
+              </div>
+              <div class="flex items-center justify-between py-1">
+                <span class="text-gray-400 font-medium">Created On</span>
+                <span class="font-bold text-gray-800 text-[11px]">{{ticket.created_at.strftime('%b %d, %Y') if ticket.created_at else '—'}}</span>
+              </div>
+              {% if ticket.project %}
+              <div class="flex items-center justify-between py-1">
+                <span class="text-gray-400 font-medium">Project</span>
+                <span class="font-bold text-primary-700 text-[11px] truncate max-w-[150px]">{{ticket.project.name}}</span>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Pod Engineers Section -->
+            <div class="mt-4 pt-3.5 border-t border-gray-100">
+              <div class="flex items-center justify-between mb-2.5">
+                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <i class="fas fa-users-gear text-primary-500 text-[11px]"></i>
+                  <span>Pod Engineers</span>
+                </span>
+                <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{{assignments|length}}</span>
+              </div>
+
+              {% if assignments %}
+              <div class="space-y-2">
+                {% for a in assignments %}
+                <div class="flex items-center gap-2.5 p-2 rounded-xl {% if a.is_accepted %}bg-emerald-50/80 border border-emerald-200/80{% else %}bg-gray-50/60 border border-gray-100{% endif %}">
+                  <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-primary-400 to-indigo-500 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0 shadow-2xs">
+                    {{a.developer.name[0].upper()}}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-bold text-xs text-gray-900 truncate leading-tight">{{a.developer.name}}</div>
+                    <div class="text-[10px] text-gray-400 capitalize">{{a.developer.dev_role.value if a.developer.dev_role else ''}} dev</div>
+                  </div>
+                  {% if a.is_accepted %}
+                  <span class="text-[9px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-2xs flex-shrink-0">
+                    <i class="fas fa-check text-[8px]"></i>Working
+                  </span>
+                  {% else %}
+                  <span class="text-[10px] text-gray-400 font-medium flex-shrink-0">Viewing</span>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="text-xs text-gray-400 text-center py-3">No pod engineers registered for this team.</p>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </main>
+
+  {% include "_footer.html" %}
 </div>
 {% endblock %}

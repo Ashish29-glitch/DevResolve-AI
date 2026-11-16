@@ -1,72 +1,82 @@
 {% extends "base.html" %}
 {% block title %}Documents - DevResolve AI{% endblock %}
 {% block body %}
-<div class="flex min-h-screen bg-gray-50">
+<div class="min-h-screen flex flex-col">
   {% set active = 'documents' %}
-  {% set pending_count = 0 %}
   {% include "manager/_sidebar.html" %}
 
-  <main class="ml-64 flex-1 p-8">
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-900">Project Documents</h1>
-      <p class="text-gray-500 text-sm mt-1">Uploaded documentation indexed for AI-powered ticket solutions</p>
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
+    <div class="mb-5 flex items-center justify-between flex-wrap gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Project Documentation</h1>
+        <p class="text-gray-500 text-xs mt-1 font-medium">Runbooks, architecture specs, and SOPs indexed for automated Self-RAG reasoning</p>
+      </div>
+      <button onclick="toggleModal('uploadDocModal', true)"
+        class="px-4 py-2.5 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition flex items-center gap-2 shadow-sm border border-white/20">
+        <i class="fas fa-upload"></i>
+        <span>Upload Documentation</span>
+      </button>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <!-- Glass Table Card -->
+    <div class="glass-card rounded-2xl shadow-glass border border-white/80 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr class="text-xs text-gray-500">
-              <th class="px-5 py-3 text-left font-semibold">Filename</th>
-              <th class="px-5 py-3 text-left font-semibold">Project</th>
-              <th class="px-5 py-3 text-left font-semibold">Uploaded By</th>
-              <th class="px-5 py-3 text-left font-semibold">Chunks Indexed</th>
-              <th class="px-5 py-3 text-left font-semibold">Size</th>
-              <th class="px-5 py-3 text-left font-semibold">Date</th>
-              <th class="px-5 py-3 text-left font-semibold">Actions</th>
+        <table class="w-full text-xs">
+          <thead class="bg-gray-50/80 border-b border-gray-100/80 backdrop-blur-md">
+            <tr class="text-gray-400 font-semibold">
+              <th class="px-4 py-3 text-left">Document File</th>
+              <th class="px-4 py-3 text-left">Pod Project</th>
+              <th class="px-4 py-3 text-left">Uploaded By</th>
+              <th class="px-4 py-3 text-left">Knowledge Vectors</th>
+              <th class="px-4 py-3 text-left">File Size</th>
+              <th class="px-4 py-3 text-left">Indexed Date</th>
+              <th class="px-4 py-3 text-left">Actions</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody class="divide-y divide-gray-100/60">
             {% for doc in documents %}
-            <tr class="hover:bg-gray-50 transition">
-              <td class="px-5 py-4">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-file-alt text-primary-400"></i>
-                  <span class="font-medium text-gray-900">{{doc.original_name}}</span>
+            <tr class="transition hover:bg-white/60">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-7 h-7 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100 shadow-2xs">
+                    <i class="fas fa-file-lines text-xs"></i>
+                  </div>
+                  <span class="font-bold text-gray-900">{{doc.original_name}}</span>
                 </div>
               </td>
-              <td class="px-5 py-4">
-                <span class="px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full text-xs font-medium">
-                  {{doc.project.name if doc.project else 'General'}}
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 bg-primary-50 text-primary-700 border border-primary-200/80 rounded-md text-[10px] font-bold">
+                  {{doc.project.name if doc.project else 'General Runbook'}}
                 </span>
               </td>
-              <td class="px-5 py-4 text-gray-600">{{doc.uploader.name}}</td>
-              <td class="px-5 py-4">
-                <span class="px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+              <td class="px-4 py-3 text-gray-600 font-medium">{{doc.uploader.name}}</td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-[10px] font-bold shadow-2xs">
                   {{doc.chunks_indexed}} chunks
                 </span>
               </td>
-              <td class="px-5 py-4 text-gray-500">
+              <td class="px-4 py-3 text-gray-500 font-mono">
                 {{(doc.file_size / 1024)|round(1)}} KB
               </td>
-              <td class="px-5 py-4 text-gray-400 text-xs">
+              <td class="px-4 py-3 text-gray-400 font-mono text-xs">
                 {{doc.created_at.strftime('%b %d, %Y') if doc.created_at else '—'}}
               </td>
-              <td class="px-5 py-4">
+              <td class="px-4 py-3">
                 <form method="post" action="/manager/documents/{{doc.id}}/delete">
                   <button type="submit"
-                    onclick="return confirm('Delete &quot;{{doc.original_name}}&quot;? This will also remove it from the AI index and cannot be undone.')"
-                    class="px-3 py-1.5 bg-red-50 text-red-500 border border-red-200 rounded-lg text-xs font-semibold hover:bg-red-100 transition flex items-center gap-1 whitespace-nowrap">
-                    <i class="fas fa-trash"></i> Delete
+                    onclick="return confirm('Delete &quot;{{doc.original_name}}&quot;? This will purge its vector chunks and cannot be undone.')"
+                    class="px-2.5 py-1 bg-rose-50 text-rose-600 border border-rose-200/80 rounded-lg text-xs font-bold hover:bg-rose-100 transition flex items-center gap-1 shadow-2xs">
+                    <i class="fas fa-trash text-[10px]"></i> Delete
                   </button>
                 </form>
               </td>
             </tr>
             {% else %}
             <tr>
-              <td colspan="7" class="py-12 text-center text-gray-400">
-                <i class="fas fa-upload text-4xl mb-3 text-gray-300 block"></i>
-                <p>No documents uploaded yet. Developers can upload docs from their dashboard.</p>
+              <td colspan="7" class="py-10 text-center text-gray-400">
+                <i class="fas fa-file-circle-plus text-3xl mb-2 text-gray-300 block"></i>
+                <p class="font-bold text-gray-700 text-xs sm:text-sm">No Documents Uploaded Yet</p>
+                <p class="text-xs text-gray-400 mt-0.5">Click <strong>Upload Documentation</strong> to ingest PDF, DOCX, or Markdown runbooks.</p>
               </td>
             </tr>
             {% endfor %}
@@ -75,5 +85,189 @@
       </div>
     </div>
   </main>
+
+  {% include "_footer.html" %}
 </div>
+
+<!-- Upload Doc Modal for Manager (Refractive Glass) -->
+<div id="uploadDocModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade border border-white/90">
+    <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-cloud-arrow-up text-primary-600"></i>
+        <span>Upload Project Documentation</span>
+      </h2>
+      <button onclick="toggleModal('uploadDocModal', false)" class="text-gray-400 hover:text-gray-600">
+        <i class="fas fa-times text-base"></i>
+      </button>
+    </div>
+    <div class="p-5 space-y-3.5">
+      <!-- Target Project/Team Select -->
+      <div>
+        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Target Pod Project <span class="text-rose-500">*</span></label>
+        <select id="modalProjectId" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium">
+          {% for proj in projects %}
+          <option value="{{proj.id}}">{{proj.name}}</option>
+          {% endfor %}
+        </select>
+        <p class="text-[10px] text-gray-400 mt-1">This documentation will be chunked and indexed into the vector DB for this pod.</p>
+      </div>
+
+      <!-- Drop Zone -->
+      <div class="border-2 border-dashed border-gray-200/90 rounded-xl p-5 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/20 transition" id="dropZone" onclick="document.getElementById('docFile').click()">
+        <i class="fas fa-cloud-arrow-up text-3xl text-gray-300 mb-1.5"></i>
+        <p class="text-gray-700 font-bold text-xs mb-0.5">Drag file here or click to browse</p>
+        <p class="text-[10px] text-gray-400 font-mono">PDF, TXT, MD, DOCX — Up to 20MB</p>
+        <input type="file" id="docFile" accept=".pdf,.txt,.md,.docx" class="hidden" onchange="onFileChosen(this)"/>
+        <button type="button" onclick="event.stopPropagation(); document.getElementById('docFile').click()"
+          class="mt-2.5 px-3 py-1 bg-primary-50 text-primary-700 border border-primary-200 rounded-lg text-[10px] font-bold hover:bg-primary-100 transition shadow-2xs">
+          Select From Computer
+        </button>
+      </div>
+
+      <!-- Selected File Preview -->
+      <div id="selectedFileInfo" class="hidden p-3 bg-primary-50/70 border border-primary-200 rounded-xl flex items-center justify-between gap-3 backdrop-blur-sm">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600 flex-shrink-0 shadow-2xs">
+            <i class="fas fa-file-lines text-xs"></i>
+          </div>
+          <div class="min-w-0">
+            <p id="selectedFileName" class="text-xs font-bold text-gray-900 truncate">filename.pdf</p>
+            <p id="selectedFileSize" class="text-[10px] text-gray-500 font-mono">0 KB</p>
+          </div>
+        </div>
+        <button type="button" onclick="clearSelectedFile()" class="p-1 text-gray-400 hover:text-rose-500 rounded-lg transition" title="Remove file">
+          <i class="fas fa-times text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Upload Status / Spinner -->
+      <div id="uploadStatus" class="hidden p-3 bg-blue-50/90 border border-blue-200 rounded-xl text-xs text-blue-700 flex items-center gap-2 font-medium">
+        <i class="fas fa-spinner fa-spin text-sm"></i>
+        <span>Chunking, embedding, and indexing into vector store...</span>
+      </div>
+
+      <!-- Upload Result -->
+      <div id="uploadResult" class="hidden"></div>
+
+      <!-- Submit Button -->
+      <div class="pt-1">
+        <button id="submitUploadBtn" type="button" onclick="submitDocUpload()" disabled
+          class="w-full py-2.5 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-sm">
+          <i class="fas fa-upload"></i>
+          <span>Confirm & Ingest Runbook</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let pendingDocFile = null;
+
+function toggleModal(id, show) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (show) {
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+    clearSelectedFile();
+  }
+}
+
+function onFileChosen(input) {
+  if (!input.files || !input.files.length) return;
+  setDocFile(input.files[0]);
+}
+
+function setDocFile(file) {
+  pendingDocFile = file;
+  document.getElementById('selectedFileName').textContent = file.name;
+  const kb = (file.size / 1024).toFixed(1);
+  const sizeText = file.size > 1048576 ? `${(file.size / 1048576).toFixed(2)} MB` : `${kb} KB`;
+  document.getElementById('selectedFileSize').textContent = sizeText;
+  document.getElementById('selectedFileInfo').classList.remove('hidden');
+  document.getElementById('uploadResult').classList.add('hidden');
+  document.getElementById('submitUploadBtn').disabled = false;
+}
+
+function clearSelectedFile() {
+  pendingDocFile = null;
+  const input = document.getElementById('docFile');
+  if (input) input.value = '';
+  document.getElementById('selectedFileInfo').classList.add('hidden');
+  document.getElementById('submitUploadBtn').disabled = true;
+  document.getElementById('uploadResult').classList.add('hidden');
+}
+
+async function submitDocUpload() {
+  if (!pendingDocFile) return;
+  const projectId = document.getElementById('modalProjectId').value;
+  if (!projectId) {
+    alert("Please select a target pod project.");
+    return;
+  }
+
+  const status = document.getElementById('uploadStatus');
+  const result = document.getElementById('uploadResult');
+  const submitBtn = document.getElementById('submitUploadBtn');
+
+  submitBtn.disabled = true;
+  status.classList.remove('hidden');
+  result.classList.add('hidden');
+
+  const formData = new FormData();
+  formData.append('file', pendingDocFile);
+  formData.append('project_id', projectId);
+
+  try {
+    const res = await fetch('/manager/upload-document', { method: 'POST', body: formData });
+    const data = await res.json();
+    status.classList.add('hidden');
+    if (res.ok) {
+      result.innerHTML = `<div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
+        <i class="fas fa-circle-check text-emerald-600 text-sm"></i>
+        <span><strong>${data.filename}</strong> successfully indexed (${data.chunks_indexed} vector chunks)!</span>
+      </div>`;
+      clearSelectedFile();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } else {
+      result.innerHTML = `<div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold flex items-center gap-2">
+        <i class="fas fa-exclamation-circle text-rose-500 text-sm"></i>
+        <span>${data.detail || 'Upload failed'}</span>
+      </div>`;
+      submitBtn.disabled = false;
+    }
+    result.classList.remove('hidden');
+  } catch (e) {
+    status.classList.add('hidden');
+    result.innerHTML = `<div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold">Upload error: ${e.message}</div>`;
+    result.classList.remove('hidden');
+    submitBtn.disabled = false;
+  }
+}
+
+// Drag & Drop
+const dropZone = document.getElementById('dropZone');
+if (dropZone) {
+  dropZone.addEventListener('dragover', e => { 
+    e.preventDefault(); 
+    dropZone.classList.add('border-primary-400','bg-primary-50/20'); 
+  });
+  dropZone.addEventListener('dragleave', () => { 
+    dropZone.classList.remove('border-primary-400','bg-primary-50/20'); 
+  });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); 
+    dropZone.classList.remove('border-primary-400','bg-primary-50/20');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      setDocFile(e.dataTransfer.files[0]);
+    }
+  });
+}
+</script>
 {% endblock %}

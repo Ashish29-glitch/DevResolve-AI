@@ -1,34 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Dev Team - DevResolve AI{% endblock %}
 {% block body %}
-<div class="flex min-h-screen bg-gray-50">
+<div class="min-h-screen flex flex-col">
   {% set active = 'team' %}
   {% set pending_count = 0 %}
   {% include "manager/_sidebar.html" %}
 
-  <main class="ml-64 flex-1 p-8">
-    <div class="mb-8 flex items-center justify-between flex-wrap gap-4">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
+    <div class="mb-5 flex items-center justify-between flex-wrap gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Development Team</h1>
-        <p class="text-gray-500 text-sm mt-1">Manage your projects and their approved developers</p>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Engineering Pods & Teams</h1>
+        <p class="text-gray-500 text-xs mt-1 font-medium">Manage corporate projects, roles, and developer assignments</p>
       </div>
       <!-- Create New Team Button -->
       <button onclick="openCreateTeamModal()"
-        class="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition flex items-center gap-2 shadow-sm">
-        <i class="fas fa-plus"></i> Create New Team
+        class="px-4 py-2.5 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition flex items-center gap-2 shadow-sm border border-white/20">
+        <i class="fas fa-plus"></i>
+        <span>Create New Pod Team</span>
       </button>
     </div>
 
     {% if request.query_params.get('error') %}
-    <div class="mb-5 px-5 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2">
-      <i class="fas fa-exclamation-circle"></i>
-      {{ request.query_params.get('error') }}
+    <div class="mb-4 p-3.5 bg-rose-50/90 border border-rose-200/80 text-rose-800 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-2xs backdrop-blur-md animate-fade">
+      <i class="fas fa-exclamation-circle text-rose-600 text-sm"></i>
+      <span>{{ request.query_params.get('error') }}</span>
     </div>
     {% endif %}
     {% if request.query_params.get('success') %}
-    <div class="mb-5 px-5 py-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm flex items-center gap-2">
-      <i class="fas fa-check-circle"></i>
-      {{ request.query_params.get('success') }}
+    <div class="mb-4 p-3.5 bg-emerald-50/90 border border-emerald-200/80 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-2xs backdrop-blur-md animate-fade">
+      <i class="fas fa-check-circle text-emerald-600 text-sm"></i>
+      <span>{{ request.query_params.get('success') }}</span>
     </div>
     {% endif %}
 
@@ -36,66 +37,69 @@
     {% for entry in projects_with_devs %}
     {% set proj = entry.project %}
     {% set devs = entry.developers %}
-    <div class="mb-8">
+    <div class="mb-6">
       <!-- Project Header -->
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-9 h-9 bg-primary-100 rounded-xl flex items-center justify-center">
-          <i class="fas fa-layer-group text-primary-600 text-sm"></i>
+      <div class="flex items-center gap-3 mb-3.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-400 text-white flex items-center justify-center text-xs shadow-md shadow-primary-500/25 border border-white/40">
+          <i class="fas fa-layer-group"></i>
         </div>
         <div>
-          <h2 class="font-bold text-gray-900 text-lg">{{proj.name}}</h2>
+          <h2 class="font-extrabold text-gray-900 text-base tracking-tight">{{proj.name}}</h2>
           {% if proj.description %}
-          <p class="text-xs text-gray-400">{{proj.description}}</p>
+          <p class="text-xs text-gray-400 mt-0.5">{{proj.description}}</p>
           {% endif %}
         </div>
-        <span class="ml-auto px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-medium">
-          {{devs|length}} developer{% if devs|length != 1 %}s{% endif %}
+        <span class="ml-auto px-2.5 py-0.5 bg-white/80 border border-white/90 text-primary-700 rounded-full text-xs font-bold shadow-2xs">
+          {{devs|length}} engineer{% if devs|length != 1 %}s{% endif %}
         </span>
       </div>
 
       {% if devs %}
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for dev in devs %}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 card-hover">
-          <div class="flex items-start gap-4 mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-700 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+        <div class="glass-card rounded-2xl shadow-glass border border-white/80 p-4 sm:p-5 card-hover">
+          <div class="flex items-start gap-3 mb-3.5">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-400 text-white font-extrabold text-sm flex items-center justify-center flex-shrink-0 shadow-md shadow-primary-500/25 border border-white/40">
               {{dev.name[0].upper()}}
             </div>
             <div class="flex-1 min-w-0">
-              <h3 class="font-bold text-gray-900 truncate">{{dev.name}}</h3>
-              <p class="text-sm text-gray-500 truncate">{{dev.email}}</p>
-              <span class="inline-block mt-1 px-2.5 py-0.5 bg-primary-50 text-primary-700 rounded-full text-xs font-medium capitalize">
-                {{dev.dev_role.value if dev.dev_role else 'unassigned'}}
+              <h3 class="font-bold text-gray-900 text-xs sm:text-sm truncate">{{dev.name}}</h3>
+              <p class="text-xs text-gray-500 truncate font-mono mt-0.5">{{dev.email}}</p>
+              <span class="inline-block mt-1 px-2 py-0.5 bg-primary-50 text-primary-700 border border-primary-200 rounded-full text-[10px] font-bold capitalize">
+                {{dev.dev_role.value if dev.dev_role else 'unassigned'}} Role
               </span>
             </div>
           </div>
 
           <!-- Update Role -->
-          <form method="post" action="/manager/team/{{dev.id}}/update-role" class="flex gap-2 mb-2">
-            <select name="dev_role" class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
+          <form method="post" action="/manager/team/{{dev.id}}/update-role" class="flex gap-2 mb-2.5">
+            <select name="dev_role" class="flex-1 px-2.5 py-1.5 rounded-xl text-xs font-medium">
               {% for role in dev_roles %}
               <option value="{{role}}" {% if dev.dev_role and dev.dev_role.value == role %}selected{% endif %}>
                 {{role.capitalize()}}
               </option>
               {% endfor %}
             </select>
-            <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700 transition">
+            <button type="submit" class="px-3 py-1.5 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition shadow-sm">
               Update
             </button>
           </form>
 
           <!-- Move & Remove actions -->
-          <div class="flex gap-2 mt-1">
+          <div class="flex gap-2 pt-2 border-t border-gray-100/70">
             <button type="button"
-              onclick="openMoveModal({{dev.id}}, '{{dev.name}}', '{{dev.dev_role.value if dev.dev_role else ''}}')"
-              class="flex-1 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-xs font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-1">
-              <i class="fas fa-exchange-alt"></i> Move Team
+              data-dev-id="{{dev.id}}"
+              data-dev-name="{{dev.name}}"
+              data-dev-role="{{dev.dev_role.value if dev.dev_role else ''}}"
+              onclick="openMoveModal(this)"
+              class="flex-1 px-2.5 py-1.5 bg-blue-50/80 text-blue-700 border border-blue-200/80 rounded-xl text-xs font-bold hover:bg-blue-100 transition flex items-center justify-center gap-1 shadow-2xs">
+              <i class="fas fa-arrow-right-arrow-left text-[10px]"></i> Move Pod
             </button>
             <form method="post" action="/manager/team/{{dev.id}}/remove">
               <button type="submit"
                 onclick="return confirm('Remove {{dev.name}} from this project? They will lose access and need to re-apply.')"
-                class="px-3 py-1.5 bg-red-50 text-red-500 border border-red-200 rounded-lg text-xs font-semibold hover:bg-red-100 transition flex items-center gap-1">
-                <i class="fas fa-user-minus"></i> Remove
+                class="px-2.5 py-1.5 bg-rose-50/80 text-rose-600 border border-rose-200/80 rounded-xl text-xs font-bold hover:bg-rose-100 transition flex items-center gap-1 shadow-2xs">
+                <i class="fas fa-user-minus text-[10px]"></i> Remove
               </button>
             </form>
           </div>
@@ -103,112 +107,115 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center text-gray-400">
-        <i class="fas fa-user-slash text-3xl mb-2 text-gray-300"></i>
-        <p class="text-sm">No approved developers in this project yet.</p>
-        <a href="/manager/requests" class="text-primary-600 hover:underline text-xs mt-1 inline-block">Approve access requests →</a>
+      <div class="glass-card rounded-2xl border border-dashed border-gray-200 p-6 text-center text-gray-400">
+        <i class="fas fa-users-slash text-2xl mb-1 text-gray-300"></i>
+        <p class="text-xs font-semibold">No approved developers in this project team yet.</p>
+        <a href="/manager/requests" class="text-primary-600 hover:underline text-xs font-bold mt-1 inline-block">Review pending requests →</a>
       </div>
       {% endif %}
     </div>
     {% else %}
     <div class="text-center py-16 text-gray-400">
-      <i class="fas fa-users text-5xl mb-3"></i>
-      <p>No projects found. Create a new team to get started.</p>
+      <i class="fas fa-users-gear text-4xl mb-2 text-gray-300"></i>
+      <p class="text-xs font-semibold">No engineering pods created yet. Launch your first project team!</p>
     </div>
     {% endfor %}
   </main>
+
+  {% include "_footer.html" %}
 </div>
 
-<!-- Move Developer Modal -->
+<!-- Move Developer Modal (Refractive Glass) -->
 <div id="moveDevModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-    <div class="flex items-center justify-between mb-5">
-      <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-        <i class="fas fa-exchange-alt text-blue-500"></i>
-        Move Developer to Another Team
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 sm:p-6 animate-fade border border-white/90">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-arrow-right-arrow-left text-primary-500"></i>
+        <span>Move Developer to Another Pod</span>
       </h3>
-      <button onclick="closeMoveModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+      <button onclick="closeMoveModal()" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
     </div>
-    <p class="text-sm text-gray-500 mb-4">
-      Moving <strong id="moveDevName" class="text-gray-800"></strong> to a different project team.
+    <p class="text-xs text-gray-500 mb-4 leading-relaxed">
+      Transferring <strong id="moveDevName" class="text-gray-900 font-bold"></strong> to a new project team.
     </p>
-    <form id="moveDevForm" method="post" action="" class="space-y-4">
+    <form id="moveDevForm" method="post" action="" class="space-y-3.5">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Select New Project <span class="text-red-500">*</span></label>
-        <select name="new_project_id" required
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
-          <option value="">Choose a project...</option>
+        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Target Pod Project <span class="text-rose-500">*</span></label>
+        <select name="new_project_id" required class="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium">
+          <option value="">Choose a project pod...</option>
           {% for proj in all_projects %}
           <option value="{{proj.id}}">{{proj.name}}</option>
           {% endfor %}
         </select>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Role in New Team <span class="text-red-500">*</span></label>
-        <select name="dev_role" id="moveDevRole" required
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
+        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Role in New Pod <span class="text-rose-500">*</span></label>
+        <select name="dev_role" id="moveDevRole" required class="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium">
           {% for role in dev_roles %}
           <option value="{{role}}">{{role.capitalize()}}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="flex gap-3 pt-2">
-        <button type="submit"
-          class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
-          <i class="fas fa-exchange-alt"></i> Move to Team
-        </button>
+      <div class="flex gap-2.5 pt-2">
         <button type="button" onclick="closeMoveModal()"
-          class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
+          class="flex-1 px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-200 transition">
           Cancel
+        </button>
+        <button type="submit"
+          class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition shadow-sm flex items-center justify-center gap-1.5">
+          <i class="fas fa-check"></i>
+          <span>Confirm Move</span>
         </button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Create New Team Modal -->
+<!-- Create New Team Modal (Refractive Glass) -->
 <div id="createTeamModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-    <div class="flex items-center justify-between mb-5">
-      <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 sm:p-6 animate-fade border border-white/90">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
         <i class="fas fa-plus-circle text-primary-500"></i>
-        Create New Team / Project
+        <span>Create New Pod / Project</span>
       </h3>
-      <button onclick="closeCreateTeamModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+      <button onclick="closeCreateTeamModal()" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
     </div>
-    <form method="post" action="/manager/team/create-project" class="space-y-4">
+    <form method="post" action="/manager/team/create-project" class="space-y-3.5">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Project / Team Name <span class="text-red-500">*</span></label>
-        <input type="text" name="project_name" required placeholder="e.g. Mobile App v2"
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Pod Team Name <span class="text-rose-500">*</span></label>
+        <input type="text" name="project_name" required placeholder="e.g. Core Infrastructure & Reliability"
+          class="w-full px-3.5 py-2.5 rounded-xl text-xs font-medium"
           maxlength="200"/>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-gray-400 text-xs">(optional)</span></label>
-        <textarea name="project_description" rows="3" placeholder="Brief description of this project..."
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"></textarea>
+        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Description <span class="text-gray-400 normal-case font-normal">(optional)</span></label>
+        <textarea name="project_description" rows="2" placeholder="Scope, architectural domain, or repository references..."
+          class="w-full px-3.5 py-2.5 rounded-xl text-xs resize-none"></textarea>
       </div>
-      <div class="flex gap-3 pt-2">
-        <button type="submit"
-          class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700 transition flex items-center justify-center gap-2">
-          <i class="fas fa-plus"></i> Create Team
-        </button>
+      <div class="flex gap-2.5 pt-2">
         <button type="button" onclick="closeCreateTeamModal()"
-          class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
+          class="flex-1 px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-200 transition">
           Cancel
+        </button>
+        <button type="submit"
+          class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition shadow-sm flex items-center justify-center gap-1.5">
+          <i class="fas fa-plus"></i>
+          <span>Create Pod</span>
         </button>
       </div>
     </form>
   </div>
 </div>
-
 {% endblock %}
 {% block scripts %}
 <script>
-function openMoveModal(devId, devName, currentRole) {
+function openMoveModal(btn) {
+  const devId = btn.dataset.devId;
+  const devName = btn.dataset.devName;
+  const currentRole = btn.dataset.devRole;
   document.getElementById('moveDevName').textContent = devName;
   document.getElementById('moveDevForm').action = '/manager/team/' + devId + '/move-project';
-  // Pre-select current role if available
   const roleSelect = document.getElementById('moveDevRole');
   if (currentRole) {
     for (let opt of roleSelect.options) {

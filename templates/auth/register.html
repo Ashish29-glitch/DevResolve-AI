@@ -1,74 +1,78 @@
 {% extends "base.html" %}
-{% block title %}Register - DevResolve AI{% endblock %}
+{% block title %}Create Account - DevResolve AI{% endblock %}
 {% block body %}
-<div class="min-h-screen gradient-bg flex items-center justify-center p-4">
-  <div class="w-full max-w-md">
+<div class="min-h-screen flex items-center justify-center p-4 relative z-10">
+  <div class="w-full max-w-md animate-fade">
     <div class="text-center mb-8">
-      <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-        <i class="fas fa-robot text-white text-3xl"></i>
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-400 text-white shadow-xl shadow-primary-500/30 mb-4 border border-white/40">
+        <i class="fas fa-robot text-2xl"></i>
       </div>
-      <h1 class="text-3xl font-extrabold text-white">Create Account</h1>
-      <p class="text-white/70 mt-2">Join DevResolve AI as a Developer</p>
+      <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Create Account</h1>
+      <p class="text-gray-500 text-sm mt-1">Join DevResolve AI Engineering Workspace</p>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-2xl p-8">
+    <div class="glass-card rounded-3xl p-8 shadow-2xl border border-white/80">
       <!-- Google -->
-      <a href="/auth/google" class="flex items-center justify-center gap-3 w-full py-3 border-2 border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition font-semibold text-gray-700 mb-4">
+      <a href="/auth/google" class="flex items-center justify-center gap-3 w-full py-3.5 bg-white/80 hover:bg-white border border-gray-200/80 rounded-2xl transition font-semibold text-gray-700 mb-5 shadow-sm hover:shadow-md">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"/>
-        Register with Google
+        <span>Register with Google</span>
       </a>
+
       <div class="flex items-center gap-3 mb-5">
-        <div class="flex-1 h-px bg-gray-200"></div>
-        <span class="text-xs text-gray-400 font-medium">or register with email</span>
-        <div class="flex-1 h-px bg-gray-200"></div>
+        <div class="flex-1 h-px bg-gray-200/70"></div>
+        <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">or register with email</span>
+        <div class="flex-1 h-px bg-gray-200/70"></div>
       </div>
 
       {% if error %}
-      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
-        <i class="fas fa-exclamation-circle"></i>{{error}}
+      <div class="mb-5 p-3.5 bg-rose-50/90 border border-rose-200/80 rounded-2xl text-rose-700 text-sm flex items-center gap-2.5 animate-fade">
+        <i class="fas fa-exclamation-circle text-rose-500"></i>
+        <span>{{error}}</span>
       </div>
       {% endif %}
 
       <form method="post" action="/auth/register" class="space-y-4">
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+          <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Full Name</label>
           <input type="text" name="name" required placeholder="John Doe"
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"/>
+            class="w-full px-4 py-3 rounded-xl text-sm"/>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
+          <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Work Email</label>
           <input type="email" name="email" required placeholder="dev@company.com"
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"/>
+            class="w-full px-4 py-3 rounded-xl text-sm"/>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+          <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Password</label>
           <input type="password" name="password" required placeholder="Min 8 characters"
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"/>
+            class="w-full px-4 py-3 rounded-xl text-sm"/>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Project</label>
+          <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Select Project</label>
           <select name="project_id" required id="projectSelect" onchange="fetchManager(this.value)"
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm bg-white">
+            class="w-full px-4 py-3 rounded-xl text-sm">
             <option value="">-- Choose a project --</option>
             {% for p in projects %}
             <option value="{{p.id}}">{{p.name}}</option>
             {% endfor %}
           </select>
         </div>
-        <div id="managerInfo" class="hidden p-3 bg-primary-50 rounded-xl text-sm">
+        <div id="managerInfo" class="hidden p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-xl text-sm backdrop-blur-sm">
           <div class="flex items-center gap-2 text-primary-700">
-            <i class="fas fa-user-tie"></i>
-            <span>Manager: <strong id="managerName"></strong></span>
+            <i class="fas fa-user-shield"></i>
+            <span>Project Manager: <strong id="managerName" class="text-primary-900 font-bold"></strong></span>
           </div>
         </div>
-        <button type="submit" class="w-full py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition">
-          <i class="fas fa-user-plus mr-2"></i>Register & Request Access
+        <button type="submit" class="w-full py-3.5 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition shadow-lg shadow-primary-500/25 flex items-center justify-center gap-2">
+          <i class="fas fa-user-plus"></i>
+          <span>Register & Request Access</span>
         </button>
       </form>
-      <p class="text-center text-sm text-gray-500 mt-4">
-        Already have an account? <a href="/auth/login" class="text-primary-600 font-semibold hover:underline">Login</a>
+      <p class="text-center text-xs text-gray-500 mt-5">
+        Already registered? <a href="/auth/login" class="text-primary-600 font-bold hover:underline">Sign In</a>
       </p>
     </div>
+    <p class="text-center text-gray-400 text-xs mt-6">© 2026 DevResolve AI</p>
   </div>
 </div>
 {% endblock %}
