@@ -1,4 +1,5 @@
 """Main FastAPI Application - DevResolve AI"""
+import os
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -15,6 +16,9 @@ from src.routers import auth, manager, developer
 
 settings = get_settings()
 ROOT = Path(__file__).resolve().parent
+
+os.makedirs(ROOT / "static", exist_ok=True)
+os.makedirs(ROOT / "uploads", exist_ok=True)
 
 app = FastAPI(
     title="DevResolve AI",
