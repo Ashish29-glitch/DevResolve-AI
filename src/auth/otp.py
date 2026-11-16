@@ -1,10 +1,10 @@
 """OTP Generation and Email Sending"""
 import random
 import string
+import logging
 import smtplib
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from src.config import get_settings
 
 settings = get_settings()
@@ -18,20 +18,38 @@ def get_otp_expiry() -> datetime:
     return datetime.now(timezone.utc) + timedelta(minutes=settings.otp_expire_minutes)
 
 
-def send_otp_email(to_email: str, otp: str, name: str = "Developer") -> bool:
-    """Send OTP via Gmail SMTP. Returns True on success."""
-    if not settings.smtp_user or not settings.smtp_password:
-        # Dev mode: print OTP
-        print(f"[DEV MODE] OTP for {to_email}: {otp}")
+def send_email(to_email: str, subject: str, body: str) -> bool:
+    """Send an HTML email when SMTP is enabled; otherwise skip delivery."""
+    if not settings.smtp_enabled:
+        logging.info(
+            "SMTP is disabled. Skipping email to %s. Subject: %s",
+            to_email,
+            subject,
+        )
         return True
 
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "DevResolve AI - Your OTP Code"
-        msg["From"] = settings.from_email
-        msg["To"] = to_email
+    if not settings.smtp_user or not settings.smtp_password:
+        raise RuntimeError("SMTP_ENABLED is true but SMTP_USER or SMTP_PASSWORD is missing")
 
-        html = f"""
+    msg = MIMEText(body, "html", "utf-8")
+    msg["Subject"] = subject
+    msg["From"] = settings.from_email
+    msg["To"] = to_email
+
+    try:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+            server.starttls()
+            server.login(settings.smtp_user, settings.smtp_password)
+            server.send_message(msg)
+    except Exception:
+        logging.exception("Email send error to %s", to_email)
+        raise
+    return True
+
+
+def send_otp_email(to_email: str, otp: str, name: str = "Developer") -> bool:
+    """Send an OTP email, or skip it when SMTP is disabled."""
+    html = f"""
         <html><body style="font-family: Arial, sans-serif; background: #f4f6fb; padding: 32px;">
         <div style="max-width:480px;margin:auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 20px rgba(0,0,0,.08)">
           <div style="text-align:center;margin-bottom:24px">
@@ -49,29 +67,12 @@ def send_otp_email(to_email: str, otp: str, name: str = "Developer") -> bool:
         </div>
         </body></html>
         """
-        msg.attach(MIMEText(html, "html"))
-
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-            server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.sendmail(settings.from_email, to_email, msg.as_string())
-        return True
-    except Exception as e:
-        print(f"Email send error: {e}")
-        return False
+    return send_email(to_email, "DevResolve AI - Your OTP Code", html)
 
 
 def send_welcome_email(to_email: str, name: str, project: str, manager: str) -> bool:
-    """Send welcome email to approved developer."""
-    if not settings.smtp_user:
-        print(f"[DEV MODE] Welcome email to {to_email}")
-        return True
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "🎉 DevResolve AI - Access Approved!"
-        msg["From"] = settings.from_email
-        msg["To"] = to_email
-        html = f"""
+    """Send an access-approved email, or skip it when SMTP is disabled."""
+    html = f"""
         <html><body style="font-family:Arial,sans-serif;background:#f4f6fb;padding:32px;">
         <div style="max-width:480px;margin:auto;background:#fff;border-radius:12px;padding:32px;">
           <h2 style="color:#4f46e5">Welcome to DevResolve AI! 🚀</h2>
@@ -82,12 +83,4 @@ def send_welcome_email(to_email: str, name: str, project: str, manager: str) -> 
         </div>
         </body></html>
         """
-        msg.attach(MIMEText(html, "html"))
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-            server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.sendmail(settings.from_email, to_email, msg.as_string())
-        return True
-    except Exception as e:
-        print(f"Welcome email error: {e}")
-        return False
+    return send_email(to_email, "DevResolve AI - Access Approved!", html)

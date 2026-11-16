@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # Email / SMTP
     smtp_host: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
+    smtp_enabled: bool = os.getenv("SMTP_ENABLED", "false").lower() in ("true", "1", "yes")
     smtp_user: str = os.getenv("SMTP_USER", "")
     smtp_password: str = os.getenv("SMTP_PASSWORD", "")
     from_email: str = os.getenv("FROM_EMAIL", "noreply@devresolve.ai")
